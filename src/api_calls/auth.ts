@@ -24,8 +24,14 @@ export async function login({ email, password }: LoginData): Promise<AuthRespons
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
+
+  if (res.ok && data.token) {
+    localStorage.setItem("token", data.token); 
+  }
+
   return { success: res.ok, data, message: data.message };
 }
+
 
 export async function register({ name, email, password }: RegisterData): Promise<AuthResponse> {
   const res = await fetch(`${API_URL}/auth/register`, {
