@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { createReservation } from "../api_calls/post_reservation";
+import AvailabilityViewer from "../components/reservation_available_dates";
+import { getReservationsByAmenity } from "../api_calls/get_amenity_reservations";
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -16,7 +18,7 @@ interface UserData {
 
 interface ReservationData {
     [space: string]: {
-        [time: string]: number; // cantidad de personas reservadas
+        [time: string]: number;
 
     };
 }
@@ -42,6 +44,7 @@ function Dashboard() {
     const [timeError, setTimeError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [userReservations, setUserReservations] = useState<Reservation[]>([]);
+    const [selectedDate, setSelectedDate] = useState("");
 
 
 
@@ -117,9 +120,9 @@ function Dashboard() {
             if (!token) return;
 
             const [startStr, endStr] = selectedTime.split(" - ");
-            const today = new Date();
-            const startDateTime = new Date(today);
-            const endDateTime = new Date(today);
+            const baseDate = new Date(selectedDate);
+            const startDateTime = new Date(baseDate);
+            const endDateTime = new Date(baseDate);
 
             const [sh, sm] = startStr.split(":").map(Number);
             const [eh, em] = endStr.split(":").map(Number);
@@ -197,6 +200,27 @@ function Dashboard() {
                 </div>
             </section>
 
+            {selectedSpace && token && (() => {
+                const amenity = amenities.find(a => a.name === selectedSpace);
+                if (!amenity) return null; // or a loading placeholder
+
+                return (
+                    <section className="mb-12">
+                        <AvailabilityViewer
+                            amenityId={amenity.id}
+                            amenityName={selectedSpace}
+                            capacity={amenity.capacity || 1}
+                            fetchReservations={async (id) => {
+                                if (!token) return [];
+                                return getReservationsByAmenity(token, id);
+                            }}
+                        />
+                    </section>
+                );
+            })()}
+
+
+
             {/* Selección de horario dinámica e integrada */}
 
             <section className="mb-12">
@@ -206,9 +230,17 @@ function Dashboard() {
 
                 <div className="flex justify-center">
                     <div className="bg-white p-6 rounded-3xl shadow-lg w-full md:w-80 flex flex-col gap-4">
-                        <label className="text-gray-700 font-medium text-lg">Horario deseado:</label>
+                        {/* Fecha */}
+                        <label className="text-gray-700 font-medium text-lg">Fecha deseada:</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="p-3 rounded-xl border border-gray-300 shadow-sm w-full"
+                        />
 
                         {/* Hora de inicio */}
+                        <label className="text-gray-700 font-medium text-lg">Horario deseado:</label>
                         <input
                             type="time"
                             value={selectedTime.split(" - ")[0]}
@@ -227,12 +259,9 @@ function Dashboard() {
                             onChange={(e) => {
                                 const end = e.target.value;
                                 const [start] = selectedTime.split(" - ");
-
-                                // Buscar maxDuration del espacio
                                 const space = amenities.find(a => a.name === selectedSpace);
                                 const maxDuration = space?.maxDuration || 60;
 
-                                // Validar duración
                                 const [sh, sm] = start.split(":").map(Number);
                                 const [eh, em] = end.split(":").map(Number);
                                 const duration = (eh * 60 + em) - (sh * 60 + sm);
@@ -247,6 +276,7 @@ function Dashboard() {
                             }}
                             className="p-3 rounded-xl border border-gray-300 shadow-sm w-full"
                         />
+
                         {timeError && (
                             <p className="text-red-600 font-medium mt-1">{timeError}</p>
                         )}
