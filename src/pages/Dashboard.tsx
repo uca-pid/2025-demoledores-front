@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { createReservation } from "../api_calls/post_reservation";
+
 import AvailabilityViewer from "../components/reservation_available_dates";
 import { getReservationsByAmenity } from "../api_calls/get_amenity_reservations";
+
+import { updateUserName } from "../api_calls/update_user_name";
+import { updateUserPassword } from "../api_calls/update_user_password";
+import { User, ArrowLeft } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -19,9 +25,9 @@ interface UserData {
 interface ReservationData {
     [space: string]: {
         [time: string]: number;
-
     };
 }
+
 interface Reservation {
     id: number;
     startTime: string;
@@ -32,7 +38,6 @@ interface Reservation {
         name: string;
     };
 }
-
 
 function Dashboard() {
     const [token, setToken] = useState<string | null | undefined>(undefined);
@@ -46,79 +51,70 @@ function Dashboard() {
     const [userReservations, setUserReservations] = useState<Reservation[]>([]);
     const [selectedDate, setSelectedDate] = useState("");
 
+    const [showProfile, setShowProfile] = useState(false);
+    const [showEditPopup, setShowEditPopup] = useState(false);
+    const [newName, setNewName] = useState("");
 
-
-
-    // fetch user data
     useEffect(() => {
         const savedToken = localStorage.getItem("token");
-        if (!savedToken) return;
-
+        if (!savedToken) {
+            setToken(null);
+            return;
+        }
         setToken(savedToken);
 
-        // fetch user
         fetch(`${API_URL}/dashboard`, {
             headers: {
-                "Authorization": `Bearer ${savedToken}`,
-                "Content-Type": "application/json"
+                Authorization: `Bearer ${savedToken}`,
+                "Content-Type": "application/json",
             },
         })
-            .then(res => res.json())
-            .then(setUserData)
+            .then((res) => res.json())
+            .then((data) => {
+                setUserData(data);
+                setNewName(data.user.name);
+            })
             .catch(console.error);
 
-        // fetch amenities
         fetch(`${API_URL}/amenities`, {
-            headers: { "Authorization": `Bearer ${savedToken}` },
+            headers: { Authorization: `Bearer ${savedToken}` },
         })
-            .then(res => res.json())
+            .then((res) => res.json())
             .then(setAmenities)
             .catch(console.error);
     }, []);
 
-
-    // useEffect para inicializar selectedSpace y reservations al traer amenities
     useEffect(() => {
         if (amenities.length > 0) {
             setSelectedSpace(amenities[0].name);
-
-            setReservations(prev => {
+            setReservations((prev) => {
                 const newReservations: ReservationData = { ...prev };
-                amenities.forEach(a => {
+                amenities.forEach((a) => {
                     if (!newReservations[a.name]) {
                         newReservations[a.name] = { "08:00 - 09:00": 0, "09:00 - 10:00": 0 };
                     }
                 });
                 return newReservations;
             });
-
-            // set the default selectedTime based on first slot of first amenity
             setSelectedTime("08:00 - 09:00");
         }
     }, [amenities]);
+
     useEffect(() => {
         if (!token) return;
-
         fetch(`${API_URL}/reservations`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
             .then(setUserReservations)
             .catch(console.error);
     }, [token]);
 
-
-
-
     if (token === undefined) return <p>Loading...</p>;
     if (!token) return <Navigate to="/login" />;
 
     const handleReserve = async () => {
         try {
-            if (!token) return;
-
             const [startStr, endStr] = selectedTime.split(" - ");
             const baseDate = new Date(selectedDate);
             const startDateTime = new Date(baseDate);
@@ -126,61 +122,164 @@ function Dashboard() {
 
             const [sh, sm] = startStr.split(":").map(Number);
             const [eh, em] = endStr.split(":").map(Number);
-
             startDateTime.setHours(sh, sm, 0, 0);
             endDateTime.setHours(eh, em, 0, 0);
 
-            const amenity = amenities.find(a => a.name === selectedSpace);
+            const amenity = amenities.find((a) => a.name === selectedSpace);
             if (!amenity) return;
 
             await createReservation(token, {
                 amenityId: amenity.id,
                 startTime: startDateTime.toISOString(),
-                endTime: endDateTime.toISOString()
+                endTime: endDateTime.toISOString(),
             });
 
-            setReservations(prev => ({
+            setReservations((prev) => ({
                 ...prev,
                 [selectedSpace]: {
                     ...prev[selectedSpace],
-                    [selectedTime]: (prev[selectedSpace][selectedTime] || 0) + 1
-                }
+                    [selectedTime]: (prev[selectedSpace][selectedTime] || 0) + 1,
+                },
             }));
 
-            setTimeError(null);       // limpiar errores
+            setTimeError(null);
             setSuccessMessage(`✅ Reserva confirmada para ${selectedSpace} a las ${selectedTime}`);
-
-            // Opcional: quitar mensaje después de 5 segundos
             setTimeout(() => setSuccessMessage(null), 5000);
-
         } catch (err: any) {
             setTimeError(err.message);
         }
     };
 
+    const handleSaveName = async () => {
+        if (!token) return;
+        try {
+            await updateUserName(token, { name: newName });
+            setUserData((prev) => prev && { ...prev, user: { ...prev.user, name: newName } });
+            setShowEditPopup(false);
+        } catch (err: any) {
+            alert("Error al actualizar nombre: " + err.message);
+        }
+    };
 
-
-    const spaces = amenities.map(a => a.name);
+    const spaces = amenities.map((a) => a.name);
     const times = reservations[selectedSpace] ? Object.keys(reservations[selectedSpace]) : [];
 
-
     return (
-        <div className="min-h-screen bg-gray-100 p-8">
+        <div className="min-h-screen bg-gray-100 p-8 relative overflow-hidden">
+            {/* HEADER */}
             <header className="flex justify-between items-center mb-12">
                 <h1 className="text-4xl font-extrabold text-gray-900">
                     ¡Bienvenido, {userData?.user.name}!
                 </h1>
                 <button
-                    className="px-5 py-2 bg-gray-800 text-white font-bold rounded-lg shadow hover:bg-gray-700 hover:cursor-pointer transition-all"
-                    onClick={() => {
-                        localStorage.removeItem("token"); // borrar token
-                        window.location.href = "/login";  // redirigir a login
-                    }}
+                    onClick={() => setShowProfile((prev) => !prev)}
+                    className="p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition-all cursor-pointer"
+                    title="Perfil"
                 >
-                    Cerrar sesión
+                    <User className="w-6 h-6" />
                 </button>
             </header>
 
+            {/* PANEL PERFIL (Derecha) */}
+            <AnimatePresence>
+                {showProfile && (
+                    <>
+                        {/* Overlay con blur para el fondo */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="fixed inset-0 backdrop-blur-sm bg-black/20 z-40"
+                            onClick={() => setShowProfile(false)}
+                        />
+
+                        {/* Panel lateral */}
+                        <motion.div
+                            initial={{ x: "100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "100%" }}
+                            transition={{ type: "spring", stiffness: 80, damping: 20 }}
+                            className="fixed top-0 right-0 h-full w-1/4 bg-white shadow-2xl p-6 flex flex-col justify-between z-50"
+                        >
+                            {/* Botón flecha para cerrar */}
+                            <button
+                                onClick={() => setShowProfile(false)}
+                                className="absolute top-4 left-4 text-gray-700 hover:text-gray-900 transition-colors"
+                            >
+                                <ArrowLeft size={24} />
+                            </button>
+
+                            <div className="mt-10">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-4">Perfil</h2>
+                                <p className="text-lg text-gray-700 mb-6">{userData?.user.name}</p>
+                                <button
+                                    onClick={() => setShowEditPopup(true)}
+                                    className="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-all mb-6"
+                                >
+                                    Editar datos
+                                </button>
+                            </div>
+
+                            <button
+                                className="w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+                                onClick={() => {
+                                    localStorage.removeItem("token");
+                                    window.location.href = "/login";
+                                }}
+                            >
+                                Cerrar sesión
+                            </button>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+
+            {/* POPUP EDITAR */}
+            <AnimatePresence>
+                {showEditPopup && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-black/20"
+                        // backdrop-blur-md aplica el blur y bg-black/20 agrega un leve oscurecimiento
+                        onClick={() => setShowEditPopup(false)} // Cierra si se hace clic fuera del popup
+                    >
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 15 }}
+                            className="bg-white rounded-3xl shadow-2xl p-8 w-96 relative"
+                            onClick={(e) => e.stopPropagation()} // Evita que el clic dentro del popup lo cierre
+                        >
+                            <h3 className="text-xl font-bold mb-4 text-gray-800">Editar nombre</h3>
+                            <input
+                                type="text"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-xl mb-4 focus:ring-2 focus:ring-gray-400 outline-none"
+                            />
+                            <div className="flex justify-end gap-4">
+                                <button
+                                    onClick={() => setShowEditPopup(false)}
+                                    className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleSaveName}
+                                    className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-all"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Selección de espacio */}
             <section className="mb-12">
@@ -386,9 +485,7 @@ function Dashboard() {
                 </div>
             </section>
 
-
         </div>
-
     );
 }
 
