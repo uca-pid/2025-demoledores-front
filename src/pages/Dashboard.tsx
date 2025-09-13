@@ -5,11 +5,13 @@ import { createReservation } from "../api_calls/post_reservation";
 import AvailabilityViewer from "../components/reservation_available_dates";
 import { getReservationsByAmenity } from "../api_calls/get_amenity_reservations";
 import { updateUserName } from "../api_calls/update_user_name";
+import { updateUserPassword } from "../api_calls/update_user_password";
 
 // Componentes reutilizables
 import DashboardHeader from "../components/DashboardHeader";
 import ProfilePanel from "../components/ProfilePanel";
 import EditProfileModal from "../components/EditProfileModal";
+import ChangePasswordModal from "../components/ChangePasswordModal";
 import SpaceSelector from "../components/SpaceSelector";
 import TimeSelector from "../components/TimeSelector";
 import ReservationList from "../components/ReservationList";
@@ -33,6 +35,7 @@ function Dashboard() {
 
     const [showProfile, setShowProfile] = useState(false);
     const [showEditPopup, setShowEditPopup] = useState(false);
+    const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [newName, setNewName] = useState("");
 
     useEffect(() => {
@@ -125,8 +128,8 @@ function Dashboard() {
             setTimeError(null);
             setSuccessMessage(`✅ Reserva confirmada para ${selectedSpace} a las ${selectedTime}`);
             setTimeout(() => setSuccessMessage(null), 5000);
-        } catch (err: any) {
-            setTimeError(err.message);
+        } catch (err) {
+            setTimeError(err instanceof Error ? err.message : "Error al realizar la reserva");
         }
     };
 
@@ -136,9 +139,14 @@ function Dashboard() {
             await updateUserName(token, { name: newName });
             setUserData((prev) => prev && { ...prev, user: { ...prev.user, name: newName } });
             setShowEditPopup(false);
-        } catch (err: any) {
-            alert("Error al actualizar nombre: " + err.message);
+        } catch (err) {
+            alert("Error al actualizar nombre: " + (err instanceof Error ? err.message : "Error desconocido"));
         }
+    };
+
+    const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+        if (!token) return;
+        await updateUserPassword(token, { currentPassword, newPassword });
     };
 
     return (
@@ -155,6 +163,7 @@ function Dashboard() {
                 onClose={() => setShowProfile(false)}
                 userName={userData?.user.name || ""}
                 onEditProfile={() => setShowEditPopup(true)}
+                onChangePassword={() => setShowPasswordPopup(true)}
                 onLogout={() => {
                     localStorage.removeItem("token");
                     window.location.href = "/login";
@@ -168,6 +177,13 @@ function Dashboard() {
                 newName={newName}
                 onNameChange={setNewName}
                 onSave={handleSaveName}
+            />
+
+            {/* POPUP CAMBIAR CONTRASEÑA */}
+            <ChangePasswordModal
+                isVisible={showPasswordPopup}
+                onClose={() => setShowPasswordPopup(false)}
+                onSave={handleChangePassword}
             />
 
             {/* Selección de espacio */}
@@ -252,9 +268,9 @@ function Dashboard() {
                         setUserReservations(prev =>
                             prev.map(r => r.id === reservationId ? { ...r, status: "cancelled" } : r)
                         );
-                    } catch (err: any) {
+                    } catch (err) {
                         console.error(err);
-                        alert("Error canceling reservation: " + err.message);
+                        alert("Error canceling reservation: " + (err instanceof Error ? err.message : "Error desconocido"));
                     }
                 }}
             />
