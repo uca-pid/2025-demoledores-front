@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiOutlineMail, HiOutlineLockClosed, HiOutlineUser } from 'react-icons/hi';
+import { HiOutlineMail, HiOutlineLockClosed, HiOutlineUser, HiOutlineHome } from 'react-icons/hi';
 import { register } from '../api_calls/auth';
+import { getApartments, type Apartment } from '../api_calls/get_apartments';
 
 function Register() {
   const navigate = useNavigate();
@@ -9,8 +10,28 @@ function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+    const [apartmentId, setApartmentId] = useState<number | ''>('');
+  const [apartments, setApartments] = useState<Apartment[]>([]);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
+    const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+    apartment?: string;
+  }>({});
+
+  useEffect(() => {
+    const loadApartments = async () => {
+      try {
+        const apartmentData = await getApartments();
+        setApartments(apartmentData);
+      } catch (error) {
+        console.error('Error loading apartments:', error);
+      }
+    };
+    loadApartments();
+  }, []);
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,11 +52,17 @@ function Register() {
       }
     }
     if (password !== confirmPassword) tempErrors.confirmPassword = 'Las contraseñas no coinciden';
+    if (apartmentId === '') tempErrors.apartment = 'Debes seleccionar un apartamento';
 
     setErrors(tempErrors);
 
     if (Object.keys(tempErrors).length === 0) {
-      register({ name, email, password }).then((result) => {
+      register({ 
+        name, 
+        email, 
+        password, 
+        apartmentId: typeof apartmentId === 'number' ? apartmentId : undefined 
+      }).then((result) => {
         if (result.success) navigate('/login');
         else setErrors({ email: result.message || 'Error en el registro' });
       });
@@ -78,6 +105,25 @@ function Register() {
                 }`}
             />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+          </div>
+
+          {/* Apartment */}
+          <div className="relative">
+            <HiOutlineHome className="absolute top-3 left-3 text-gray-500" size={20} />
+            <select
+              value={apartmentId || ''}
+              onChange={(e) => setApartmentId(e.target.value ? Number(e.target.value) : '')}
+              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all cursor-pointer bg-white ${errors.apartment ? 'border-red-500' : 'border-gray-300'
+                }`}
+            >
+              <option value="">Selecciona un apartamento</option>
+              {apartments.map((apartment) => (
+                <option key={apartment.id} value={apartment.id}>
+                  {apartment.unit}
+                </option>
+              ))}
+            </select>
+            {errors.apartment && <p className="text-red-500 text-sm mt-1">{errors.apartment}</p>}
           </div>
 
           {/* Password */}
