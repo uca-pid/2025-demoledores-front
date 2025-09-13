@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { LoadingButton } from "./LoadingSpinner";
 
 interface EditProfileModalProps {
     isVisible: boolean;
@@ -6,6 +7,7 @@ interface EditProfileModalProps {
     newName: string;
     onNameChange: (name: string) => void;
     onSave: () => void;
+    isSaving?: boolean;
 }
 
 function EditProfileModal({ 
@@ -13,7 +15,8 @@ function EditProfileModal({
     onClose, 
     newName, 
     onNameChange, 
-    onSave 
+    onSave,
+    isSaving = false
 }: EditProfileModalProps) {
     return (
         <AnimatePresence>
@@ -43,16 +46,19 @@ function EditProfileModal({
                         <div className="flex justify-end gap-4">
                             <button
                                 onClick={onClose}
-                                className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 transition-all"
+                                disabled={isSaving}
+                                className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Cancelar
                             </button>
-                            <button
+                            <LoadingButton
                                 onClick={onSave}
+                                loading={isSaving}
                                 className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-all"
+                                loadingText="Guardando..."
                             >
                                 Guardar
-                            </button>
+                            </LoadingButton>
                         </div>
                     </motion.div>
                 </motion.div>
