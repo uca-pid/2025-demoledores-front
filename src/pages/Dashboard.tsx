@@ -183,6 +183,42 @@ function Dashboard() {
             setIsReserving(false);
         }
     };
+        const handleCancelReservation = async (reservationId: number) => {
+        if (!token) return;
+        setIsCancelling(reservationId);
+        try {
+            await cancelReservation(token, reservationId);
+            // Update local state to mark as cancelled
+            setUserReservations(prev =>
+                prev.map(r => r.id === reservationId ? { ...r, status: "cancelled" } : r)
+            );
+        } catch (err: any) {
+            console.error(err);
+            alert("Error canceling reservation: " + err.message);
+        } finally {
+            setIsCancelling(null);
+        }
+    };
+
+    const handleRemoveFromView = async (reservationId: number) => {
+        if (!token) return;
+        setIsHiding(reservationId);
+        try {
+            // Llamar a la API para marcar como hidden_from_user = true
+            await hideReservationFromUser(token, reservationId);
+            
+            // Remove the reservation from the local state (hide from view)
+            setUserReservations(prev =>
+                prev.filter(r => r.id !== reservationId)
+            );
+        } catch (err: any) {
+            console.error(err);
+            alert("Error ocultando reserva: " + err.message);
+        } finally {
+            setIsHiding(null);
+        }
+    };
+
 
     const handleSaveName = async () => {
         if (!token) return;
@@ -301,16 +337,7 @@ function Dashboard() {
                 userName={userData?.user.name || ""}
             />
 
-            {/* Selección de espacio */}
-            <SpaceSelector
-                spaces={amenities}
-                selectedSpace={selectedSpace}
-                onSpaceSelect={setSelectedSpace}
-                getAvailableTimesCount={(spaceName) => {
-                    const times = reservations[spaceName] ? Object.keys(reservations[spaceName]) : [];
-                    return times.length;
-                }}
-            />
+           
 
 
             {selectedSpace && token && (() => {
