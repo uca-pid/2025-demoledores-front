@@ -7,6 +7,7 @@ interface ProfilePanelProps {
     userName: string;
     onEditProfile: () => void;
     onChangePassword: () => void;
+    onDeleteAccount: () => void;
     onLogout: () => void;
 }
 
@@ -15,7 +16,8 @@ function ProfilePanel({
     onClose, 
     userName, 
     onEditProfile,
-    onChangePassword, 
+    onChangePassword,
+    onDeleteAccount, 
     onLogout 
 }: ProfilePanelProps) {
     return (
@@ -64,15 +66,23 @@ function ProfilePanel({
                                 >
                                     Cambiar contraseña
                                 </button>
+                                <button
+                                    onClick={onDeleteAccount}
+                                    className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all cursor-pointer"
+                                >
+                                    Eliminar cuenta
+                                </button>
                             </div>
                         </div>
 
-                        <button
-                            className="w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all cursor-pointer"
-                            onClick={onLogout}
-                        >
-                            Cerrar sesión
-                        </button>
+                        <div className="space-y-3">
+                            <button
+                                className="w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all cursor-pointer"
+                                onClick={onLogout}
+                            >
+                                Cerrar sesión
+                            </button>
+                        </div>
                     </motion.div>
                 </>
             )}

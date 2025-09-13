@@ -7,12 +7,14 @@ import AvailabilityViewer from "../components/reservation_available_dates";
 import { getReservationsByAmenity } from "../api_calls/get_amenity_reservations";
 import { updateUserName } from "../api_calls/update_user_name";
 import { updateUserPassword } from "../api_calls/update_user_password";
+import { deleteUser } from "../api_calls/delete_user";
 
 // Componentes reutilizables
 import DashboardHeader from "../components/DashboardHeader";
 import ProfilePanel from "../components/ProfilePanel";
 import EditProfileModal from "../components/EditProfileModal";
 import ChangePasswordModal from "../components/ChangePasswordModal";
+import DeleteAccountModal from "../components/DeleteAccountModal";
 import SpaceSelector from "../components/SpaceSelector";
 import TimeSelector from "../components/TimeSelector";
 import ReservationList from "../components/ReservationList";
@@ -37,6 +39,7 @@ function Dashboard() {
     const [showProfile, setShowProfile] = useState(false);
     const [showEditPopup, setShowEditPopup] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
     const [newName, setNewName] = useState("");
 
@@ -163,6 +166,31 @@ function Dashboard() {
         }, 1000); // Show notification for 1 second before starting logout process
     };
 
+    const handleDeleteAccount = () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!token) return;
+
+        try {
+            await deleteUser(token);
+            setShowDeleteConfirm(false);
+            setShowProfile(false);
+            setLogoutMessage("✅ Cuenta eliminada exitosamente");
+            
+            setTimeout(() => {
+                localStorage.removeItem("token");
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 500);
+            }, 1500);
+        } catch (err) {
+            setShowDeleteConfirm(false);
+            alert("Error al eliminar la cuenta: " + (err instanceof Error ? err.message : "Error desconocido"));
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-100 p-8 relative overflow-hidden">
             {/* LOGOUT NOTIFICATION */}
@@ -195,6 +223,7 @@ function Dashboard() {
                 userName={userData?.user.name || ""}
                 onEditProfile={() => setShowEditPopup(true)}
                 onChangePassword={() => setShowPasswordPopup(true)}
+                onDeleteAccount={handleDeleteAccount}
                 onLogout={handleLogout}
             />
 
@@ -212,6 +241,14 @@ function Dashboard() {
                 isVisible={showPasswordPopup}
                 onClose={() => setShowPasswordPopup(false)}
                 onSave={handleChangePassword}
+            />
+
+            {/* POPUP CONFIRMAR ELIMINACIÓN */}
+            <DeleteAccountModal
+                isVisible={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleConfirmDelete}
+                userName={userData?.user.name || ""}
             />
 
             {/* Selección de espacio */}
