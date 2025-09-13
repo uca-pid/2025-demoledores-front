@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { createReservation } from "../api_calls/post_reservation";
 
 import AvailabilityViewer from "../components/reservation_available_dates";
 import { getReservationsByAmenity } from "../api_calls/get_amenity_reservations";
 import { updateUserName } from "../api_calls/update_user_name";
+import { updateUserPassword } from "../api_calls/update_user_password";
+import { deleteUser } from "../api_calls/delete_user";
 import { cancelReservation } from "../api_calls/cancel_reservation";
 import { hideReservationFromUser } from "../api_calls/hide_reservation";
+
 
 // Componentes reutilizables
 import DashboardHeader from "../components/DashboardHeader";
 import ProfilePanel from "../components/ProfilePanel";
 import EditProfileModal from "../components/EditProfileModal";
+import ChangePasswordModal from "../components/ChangePasswordModal";
+import DeleteAccountModal from "../components/DeleteAccountModal";
 import SpaceSelector from "../components/SpaceSelector";
 import TimeSelector from "../components/TimeSelector";
 import ReservationList from "../components/ReservationList";
@@ -36,6 +42,9 @@ function Dashboard() {
 
     const [showProfile, setShowProfile] = useState(false);
     const [showEditPopup, setShowEditPopup] = useState(false);
+    const [showPasswordPopup, setShowPasswordPopup] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
     const [newName, setNewName] = useState("");
 
     // Loading states
@@ -167,6 +176,7 @@ function Dashboard() {
             setSuccessMessage(`✅ Reserva confirmada para ${selectedSpace} a las ${selectedTime}`);
             setTimeout(() => setSuccessMessage(null), 5000);
 
+
         } catch (err: any) {
             setTimeError(err.message);
         } finally {
@@ -181,51 +191,74 @@ function Dashboard() {
             await updateUserName(token, { name: newName });
             setUserData((prev) => prev && { ...prev, user: { ...prev.user, name: newName } });
             setShowEditPopup(false);
-        } catch (err: any) {
-            alert("Error al actualizar nombre: " + err.message);
-        } finally {
-            setIsSavingName(false);
+
+        } catch (err) {
+            alert("Error al actualizar nombre: " + (err instanceof Error ? err.message : "Error desconocido"));
         }
     };
 
-    const handleCancelReservation = async (reservationId: number) => {
+    const handleChangePassword = async (currentPassword: string, newPassword: string) => {
         if (!token) return;
-        setIsCancelling(reservationId);
-        try {
-            await cancelReservation(token, reservationId);
-            // Update local state to mark as cancelled
-            setUserReservations(prev =>
-                prev.map(r => r.id === reservationId ? { ...r, status: "cancelled" } : r)
-            );
-        } catch (err: any) {
-            console.error(err);
-            alert("Error canceling reservation: " + err.message);
-        } finally {
-            setIsCancelling(null);
-        }
+        await updateUserPassword(token, { currentPassword, newPassword });
     };
 
-    const handleRemoveFromView = async (reservationId: number) => {
+    const handleLogout = () => {
+        setShowProfile(false); // Close the profile panel first
+        setLogoutMessage("✅ Sesión cerrada exitosamente");
+        
+        setTimeout(() => {
+            localStorage.removeItem("token");
+            setTimeout(() => {
+                window.location.href = "/login";
+            }, 500); // Additional delay to ensure the notification is seen
+        }, 1000); // Show notification for 1 second before starting logout process
+    };
+
+    const handleDeleteAccount = () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = async () => {
         if (!token) return;
-        setIsHiding(reservationId);
+
         try {
-            // Llamar a la API para marcar como hidden_from_user = true
-            await hideReservationFromUser(token, reservationId);
+            await deleteUser(token);
+            setShowDeleteConfirm(false);
+            setShowProfile(false);
+            setLogoutMessage("✅ Cuenta eliminada exitosamente");
             
-            // Remove the reservation from the local state (hide from view)
-            setUserReservations(prev =>
-                prev.filter(r => r.id !== reservationId)
-            );
-        } catch (err: any) {
-            console.error(err);
-            alert("Error ocultando reserva: " + err.message);
-        } finally {
-            setIsHiding(null);
+            setTimeout(() => {
+                localStorage.removeItem("token");
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 500);
+            }, 1500);
+        } catch (err) {
+            setShowDeleteConfirm(false);
+            alert("Error al eliminar la cuenta: " + (err instanceof Error ? err.message : "Error desconocido"));
+
         }
     };
 
     return (
         <div className="min-h-screen bg-gray-100 p-8 relative overflow-hidden">
+            {/* LOGOUT NOTIFICATION */}
+            <AnimatePresence>
+                {logoutMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 100, scale: 0.8 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: 100, scale: 0.8 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                        className="fixed top-4 right-4 z-[60] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border-2 border-green-400"
+                    >
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg font-semibold">{logoutMessage}</span>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* HEADER */}
             <DashboardHeader
                 userName={userData?.user.name || ""}
@@ -238,10 +271,9 @@ function Dashboard() {
                 onClose={() => setShowProfile(false)}
                 userName={userData?.user.name || ""}
                 onEditProfile={() => setShowEditPopup(true)}
-                onLogout={() => {
-                    localStorage.removeItem("token");
-                    window.location.href = "/login";
-                }}
+                onChangePassword={() => setShowPasswordPopup(true)}
+                onDeleteAccount={handleDeleteAccount}
+                onLogout={handleLogout}
             />
 
             {/* POPUP EDITAR */}
@@ -254,7 +286,33 @@ function Dashboard() {
                 isSaving={isSavingName}
             />
 
-            {/* Visor de disponibilidad - Ancho completo */}
+            {/* POPUP CAMBIAR CONTRASEÑA */}
+            <ChangePasswordModal
+                isVisible={showPasswordPopup}
+                onClose={() => setShowPasswordPopup(false)}
+                onSave={handleChangePassword}
+            />
+
+            {/* POPUP CONFIRMAR ELIMINACIÓN */}
+            <DeleteAccountModal
+                isVisible={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleConfirmDelete}
+                userName={userData?.user.name || ""}
+            />
+
+            {/* Selección de espacio */}
+            <SpaceSelector
+                spaces={amenities}
+                selectedSpace={selectedSpace}
+                onSpaceSelect={setSelectedSpace}
+                getAvailableTimesCount={(spaceName) => {
+                    const times = reservations[spaceName] ? Object.keys(reservations[spaceName]) : [];
+                    return times.length;
+                }}
+            />
+
+
             {selectedSpace && token && (() => {
                 const amenity = amenities.find(a => a.name === selectedSpace);
                 if (!amenity) return null;
@@ -323,10 +381,12 @@ function Dashboard() {
             {/* Resumen de reservas del usuario - Ancho completo */}
             <ReservationList
                 reservations={userReservations}
+
                 onCancelReservation={handleCancelReservation}
                 onRemoveFromView={handleRemoveFromView}
                 cancellingId={isCancelling}
                 hidingId={isHiding}
+
             />
         </div>
     );

@@ -6,6 +6,8 @@ interface ProfilePanelProps {
     onClose: () => void;
     userName: string;
     onEditProfile: () => void;
+    onChangePassword: () => void;
+    onDeleteAccount: () => void;
     onLogout: () => void;
 }
 
@@ -13,7 +15,9 @@ function ProfilePanel({
     isVisible, 
     onClose, 
     userName, 
-    onEditProfile, 
+    onEditProfile,
+    onChangePassword,
+    onDeleteAccount, 
     onLogout 
 }: ProfilePanelProps) {
     return (
@@ -41,7 +45,7 @@ function ProfilePanel({
                         {/* Botón flecha para cerrar */}
                         <button
                             onClick={onClose}
-                            className="absolute top-4 left-4 text-gray-700 hover:text-gray-900 transition-colors"
+                            className="absolute top-4 left-4 text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
                         >
                             <ArrowLeft size={24} />
                         </button>
@@ -49,20 +53,36 @@ function ProfilePanel({
                         <div className="mt-10">
                             <h2 className="text-2xl font-bold text-gray-900 mb-4">Perfil</h2>
                             <p className="text-lg text-gray-700 mb-6">{userName}</p>
-                            <button
-                                onClick={onEditProfile}
-                                className="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-all mb-6"
-                            >
-                                Editar datos
-                            </button>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={onEditProfile}
+                                    className="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-all cursor-pointer"
+                                >
+                                    Editar nombre
+                                </button>
+                                <button
+                                    onClick={onChangePassword}
+                                    className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all cursor-pointer"
+                                >
+                                    Cambiar contraseña
+                                </button>
+                                <button
+                                    onClick={onDeleteAccount}
+                                    className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all cursor-pointer"
+                                >
+                                    Eliminar cuenta
+                                </button>
+                            </div>
                         </div>
 
-                        <button
-                            className="w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
-                            onClick={onLogout}
-                        >
-                            Cerrar sesión
-                        </button>
+                        <div className="space-y-3">
+                            <button
+                                className="w-full py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all cursor-pointer"
+                                onClick={onLogout}
+                            >
+                                Cerrar sesión
+                            </button>
+                        </div>
                     </motion.div>
                 </>
             )}
