@@ -1,11 +1,21 @@
 import type { Reservation } from "../types";
+import { LoadingButton } from "./LoadingSpinner";
 
 interface ReservationCardProps {
     reservation: Reservation;
     onCancel: (reservationId: number) => void;
+    onRemoveFromView: (reservationId: number) => void;
+    isCancelling?: boolean;
+    isHiding?: boolean;
 }
 
-function ReservationCard({ reservation, onCancel }: ReservationCardProps) {
+function ReservationCard({ 
+    reservation, 
+    onCancel, 
+    onRemoveFromView,
+    isCancelling = false,
+    isHiding = false
+}: ReservationCardProps) {
     let statusColor = "bg-white"; // default
     if (reservation.status === "confirmed") statusColor = "bg-green-100";
     else if (reservation.status === "pending") statusColor = "bg-orange-100";
@@ -35,12 +45,25 @@ function ReservationCard({ reservation, onCancel }: ReservationCardProps) {
             </p>
 
             {reservation.status !== "cancelled" && reservation.status !== "denied" && (
-                <button
+                <LoadingButton
                     onClick={handleCancel}
+                    loading={isCancelling}
                     className="mt-4 py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all cursor-pointer"
+                    loadingText="Cancelando..."
                 >
                     Cancelar reserva
-                </button>
+                </LoadingButton>
+            )}
+
+            {(reservation.status === "cancelled" || reservation.status === "denied") && (
+                <LoadingButton
+                    onClick={() => onRemoveFromView(reservation.id)}
+                    loading={isHiding}
+                    className="mt-4 py-2 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all cursor-pointer"
+                    loadingText="Eliminando..."
+                >
+                    Eliminar de vista
+                </LoadingButton>
             )}
         </div>
     );

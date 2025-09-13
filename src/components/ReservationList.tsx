@@ -4,9 +4,18 @@ import type { Reservation } from "../types";
 interface ReservationListProps {
     reservations: Reservation[];
     onCancelReservation: (reservationId: number) => void;
+    onRemoveFromView: (reservationId: number) => void;
+    cancellingId?: number | null;
+    hidingId?: number | null;
 }
 
-function ReservationList({ reservations, onCancelReservation }: ReservationListProps) {
+function ReservationList({ 
+    reservations, 
+    onCancelReservation, 
+    onRemoveFromView,
+    cancellingId,
+    hidingId
+}: ReservationListProps) {
     return (
         <section>
             <h2 className="text-3xl font-semibold mb-6 text-gray-800 tracking-wide">Mis reservas</h2>
@@ -22,6 +31,9 @@ function ReservationList({ reservations, onCancelReservation }: ReservationListP
                         key={reservation.id}
                         reservation={reservation}
                         onCancel={onCancelReservation}
+                        onRemoveFromView={onRemoveFromView}
+                        isCancelling={cancellingId === reservation.id}
+                        isHiding={hidingId === reservation.id}
                     />
                 ))}
             </div>

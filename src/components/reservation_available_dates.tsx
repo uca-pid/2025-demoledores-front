@@ -1,9 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Users, Clock, Calendar } from "lucide-react";
+import { LoadingOverlay } from "./LoadingSpinner";
 
 interface Reservation {
   id?: number;
+  amenityId?: number;
+  userId?: number;
   startTime: string;
   endTime: string;
+  status?: string;
+  createdAt?: string;
   user?: { id: number; name: string }; // <--- user object from backend
 }
 interface AvailabilityViewerProps {
@@ -11,6 +17,7 @@ interface AvailabilityViewerProps {
   amenityName: string;
   capacity: number;
   fetchReservations: (amenityId: number) => Promise<Reservation[]>;
+  isLoading?: boolean;
 }
 
 // Config: rango visible (ajustable)
@@ -19,7 +26,11 @@ const VISIBLE_END_HOUR = 20; // 20:00
 const TOTAL_MINUTES = (VISIBLE_END_HOUR - VISIBLE_START_HOUR) * 60;
 
 function getDayKey(d: Date) {
-  return d.toISOString().split("T")[0];
+  // Usar toLocaleDateString para evitar problemas de zona horaria
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function clamp(n: number, a: number, b: number) {
@@ -27,11 +38,11 @@ function clamp(n: number, a: number, b: number) {
 }
 
 function getColorByRatio(ratio: number) {
-  // ratio: 0..1
-  if (ratio >= 1) return "bg-red-600 text-white";
-  if (ratio >= 0.8) return "bg-orange-600 text-white";
-  if (ratio >= 0.5) return "bg-yellow-300 text-black";
-  return "bg-green-400 text-black";
+  // ratio: 0..1 (ocupación actual vs capacidad máxima)
+  if (ratio >= 1) return "bg-red-500 text-white border-red-600";
+  if (ratio >= 0.8) return "bg-orange-500 text-white border-orange-600";
+  if (ratio >= 0.5) return "bg-yellow-400 text-black border-yellow-500";
+  return "bg-green-400 text-black border-green-500";
 }
 
 export default function AvailabilityTimelineViewer({
@@ -39,96 +50,143 @@ export default function AvailabilityTimelineViewer({
   amenityName,
   capacity,
   fetchReservations,
+  isLoading = false,
 }: AvailabilityViewerProps) {
   const [open, setOpen] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [isLoadingReservations, setIsLoadingReservations] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next week, etc.
+  const [selectedSlot, setSelectedSlot] = useState<{
+    reservations: Reservation[];
+    timeSlot: string;
+    day: string;
+  } | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      fetchReservations(amenityId).then(setReservations).catch(console.error);
-    }
-  }, [open, amenityId, fetchReservations]);
-
-  // próximos 7 días
+  // Generate days for current week + weekOffset
   const days = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      return getDayKey(d);
-    });
-  }, []);
+    const today = new Date();
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
+    
+    // Add week offset
+    currentWeekStart.setDate(currentWeekStart.getDate() + (weekOffset * 7));
+    
+    const result = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(currentWeekStart);
+      day.setDate(currentWeekStart.getDate() + i);
+      result.push({
+        date: day,
+        label: day.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" }),
+        key: getDayKey(day),
+      });
+    }
+    return result;
+  }, [weekOffset]);
 
-  // agrupar por día (por startTime)
+  // Load reservations when modal opens or week changes
+  useEffect(() => {
+    if (open && !isLoading) {
+      setIsLoadingReservations(true);
+      
+      // Get date range for current week
+      const startOfWeek = new Date(days[0].date);
+      const endOfWeek = new Date(days[6].date);
+      endOfWeek.setHours(23, 59, 59, 999);
+      
+      const startDate = startOfWeek.toISOString().split('T')[0];
+      const endDate = endOfWeek.toISOString().split('T')[0];
+      
+      console.log('Fetching reservations for dates:', startDate, 'to', endDate);
+      
+      fetchReservations(amenityId)
+        .then((data) => {
+          console.log('Reservations loaded:', data);
+          setReservations(data);
+        })
+        .catch(console.error)
+        .finally(() => setIsLoadingReservations(false));
+    }
+  }, [open, amenityId, fetchReservations, isLoading, weekOffset, days]);
+
+  // Clear reservations when amenity changes to prevent showing old data
+  useEffect(() => {
+    setReservations([]);
+    setSelectedSlot(null);
+  }, [amenityId]);
+
   const reservationsByDay = useMemo(() => {
-    const map: Record<string, Reservation[]> = {};
-    days.forEach((d) => (map[d] = []));
-    reservations.forEach((r) => {
-      const s = new Date(r.startTime);
-      const dayKey = getDayKey(s);
-      if (map[dayKey]) map[dayKey].push(r);
+    const result: Record<string, Reservation[]> = {};
+    days.forEach((d) => {
+      result[d.key] = [];
     });
-    return map;
+
+    reservations.forEach((res) => {
+      const startDate = new Date(res.startTime);
+      const dayKey = getDayKey(startDate);
+      
+      if (result[dayKey]) {
+        result[dayKey].push(res);
+      }
+    });
+
+    return result;
   }, [reservations, days]);
 
-  // layout por día: top%, height%, colIndex, colCount, overlapCount
-  const renderedByDay = useMemo(() => {
-    const result: Record<
-      string,
-      Array<{
-        res: Reservation;
-        topPct: number;
-        heightPct: number;
-        overlapCount: number;
-        colIndex: number;
-        colCount: number;
-      }>
-    > = {};
+  const timeSlotData = useMemo(() => {
+    const result: Record<string, Array<{ res: Reservation; topPct: number; heightPct: number; overlapCount: number; colIndex: number; colCount: number }>> = {};
 
-    days.forEach((day) => {
+    days.forEach(({ key: day }) => {
       const dayReservations = reservationsByDay[day] || [];
 
-      // 1) build intervals clamped to visible range
-      const intervals = dayReservations.map((r) => {
-        const s = new Date(r.startTime);
-        const e = new Date(r.endTime);
-        const startMinutes = (s.getHours() * 60 + s.getMinutes()) - VISIBLE_START_HOUR * 60;
-        const endMinutes = (e.getHours() * 60 + e.getMinutes()) - VISIBLE_START_HOUR * 60;
+      // Convert each reservation to minute ranges
+      const intervals = dayReservations.map((res) => {
+        const startDate = new Date(res.startTime);
+        const endDate = new Date(res.endTime);
+        const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+        const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+
+        // Clamp to visible range
+        const clampedStart = clamp(startMinutes, VISIBLE_START_HOUR * 60, VISIBLE_END_HOUR * 60);
+        const clampedEnd = clamp(endMinutes, VISIBLE_START_HOUR * 60, VISIBLE_END_HOUR * 60);
+
         return {
-          res: r,
-          startRaw: startMinutes,
-          endRaw: endMinutes,
-          start: clamp(startMinutes, 0, TOTAL_MINUTES),
-          end: clamp(endMinutes, 0, TOTAL_MINUTES),
+          res,
+          start: clampedStart - VISIBLE_START_HOUR * 60, // Relative to visible start
+          end: clampedEnd - VISIBLE_START_HOUR * 60,
+          colIndex: 0, // Will be calculated below
         };
       });
 
-      // sort by start time
-      intervals.sort((a, b) => a.start - b.start || a.end - b.end);
+      // Sort by start time
+      intervals.sort((a, b) => a.start - b.start);
 
-      // 2) greedy column assignment
-      const columnsEnd: number[] = []; // end minute of last interval in each column
-      const assigned: Array<typeof intervals[0] & { colIndex: number }> = [];
-
-      for (const it of intervals) {
-        let colIndex = columnsEnd.findIndex((end) => end <= it.start);
-        if (colIndex === -1) {
-          colIndex = columnsEnd.length;
-          columnsEnd.push(it.end);
-        } else {
-          columnsEnd[colIndex] = it.end;
+      // Calculate overlap columns
+      const columns: Array<{ end: number }> = [];
+      intervals.forEach((interval) => {
+        // Find the first column that doesn't overlap
+        let colIndex = 0;
+        while (colIndex < columns.length && columns[colIndex].end > interval.start) {
+          colIndex++;
         }
-        assigned.push({ ...it, colIndex });
-      }
+        
+        interval.colIndex = colIndex;
+        
+        // Update or add column
+        if (colIndex >= columns.length) {
+          columns.push({ end: interval.end });
+        } else {
+          columns[colIndex].end = interval.end;
+        }
+      });
 
-      const colCount = Math.max(1, columnsEnd.length);
-
-      // 3) compute concurrency at midpoint and top/height
-      const dayRendered = assigned.map((it) => {
-        const mid = (it.start + it.end) / 2;
-        let concurrent = 0;
-        intervals.forEach((other) => {
-          if (other.start <= mid && other.end > mid) concurrent++;
-        });
+      // Calculate rendering data
+      const colCount = columns.length;
+      const dayRendered = intervals.map((it) => {
+        // Count concurrent reservations at this time
+        const concurrent = intervals.filter((other) =>
+          other.start < it.end && other.end > it.start
+        ).length;
 
         const duration = Math.max(1, it.end - it.start); // minutes, visible at least 1
         const topPct = (it.start / TOTAL_MINUTES) * 100;
@@ -154,149 +212,269 @@ export default function AvailabilityTimelineViewer({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
       >
+        <Calendar className="w-4 h-4" />
         Ver disponibilidad (Timeline)
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-[1100px] w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Disponibilidad — {amenityName}</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-7xl w-full max-h-[90vh] mx-4 overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">
+                Disponibilidad Timeline - {amenityName}
+              </h2>
               <button
                 onClick={() => setOpen(false)}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex gap-4">
-              {/* Left: time labels */}
-              <div className="w-16 flex flex-col items-end pr-2 text-sm text-gray-600">
-                {Array.from({ length: VISIBLE_END_HOUR - VISIBLE_START_HOUR + 1 }, (_, i) => {
-                  const hour = VISIBLE_START_HOUR + i;
-                  // height percentage per hour
-                  const heightPct = 100 / (VISIBLE_END_HOUR - VISIBLE_START_HOUR);
-                  return (
-                    <div key={hour} style={{ height: `${heightPct}%` }} className="relative">
-                      {hour}:00
-                    </div>
-                  );
-                })}
+            {/* Week Navigation */}
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={() => setWeekOffset(weekOffset - 1)}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Semana anterior
+              </button>
+              
+              <div className="flex flex-col items-center">
+                <h3 className="text-lg font-semibold text-gray-700">
+                  {weekOffset === 0 ? "Esta semana" : 
+                   weekOffset === 1 ? "Próxima semana" :
+                   weekOffset > 0 ? `En ${weekOffset} semanas` :
+                   `Hace ${Math.abs(weekOffset)} semana${Math.abs(weekOffset) > 1 ? 's' : ''}`}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {days[0]?.label} - {days[6]?.label}
+                </p>
               </div>
 
-              {/* Main timeline: days as columns */}
-              <div className="flex-1 overflow-x-auto">
-                {/* header with day labels */}
-                <div className="grid" style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)`, minWidth: 700 }}>
-                  {days.map((day) => (
-                    <div key={day} className="border-b pb-2 text-center font-medium text-sm">
-                      {day}
-                    </div>
-                  ))}
+              <button
+                onClick={() => setWeekOffset(weekOffset + 1)}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Semana siguiente
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto">
+              <div className="grid grid-cols-8 gap-2 min-h-[700px]"> {/* Increased from 600px to 700px */}
+                {/* Time labels */}
+                <div className="flex flex-col">
+                  <div className="h-16 flex items-center justify-center font-bold text-gray-700 border-b border-gray-200">
+                    Hora
+                  </div>
+                  <div className="flex-1 relative">
+                    {Array.from({ length: VISIBLE_END_HOUR - VISIBLE_START_HOUR + 1 }, (_, i) => {
+                      const hour = VISIBLE_START_HOUR + i;
+                      const topPct = (i * 60 / TOTAL_MINUTES) * 100;
+                      return (
+                        <div
+                          key={hour}
+                          className="absolute w-full text-xs text-gray-500 font-medium border-t border-gray-100 pl-2 pt-1"
+                          style={{ top: `${topPct}%` }}
+                        >
+                          {hour.toString().padStart(2, '0')}:00
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div
-                  className="relative border mt-2"
-                  style={{
-                    minHeight: 600,
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${days.length}, 1fr)`,
-                    minWidth: 700,
-                  }}
-                >
-                  {/* hour horizontal lines */}
-                  {Array.from({ length: VISIBLE_END_HOUR - VISIBLE_START_HOUR }, (_, i) => {
-                    const topPct = (i / (VISIBLE_END_HOUR - VISIBLE_START_HOUR)) * 100;
-                    return (
-                      <div
-                        key={`line-${i}`}
-                        style={{ position: "absolute", left: 0, right: 0, top: `${topPct}%`, height: 1 }}
-                        className="bg-gray-200"
-                      />
-                    );
-                  })}
+                {/* Day columns */}
+                {days.map((dayObj) => (
+                  <div key={dayObj.key} className="flex flex-col">
+                    <div className="h-16 flex flex-col items-center justify-center border-b border-gray-200">
+                      <div className="font-bold text-gray-700">{dayObj.label}</div>
+                      <div className="text-xs text-gray-500">{dayObj.date.getDate()}/{dayObj.date.getMonth() + 1}</div>
+                    </div>
+                    <div className="flex-1 relative bg-gray-50 border-r border-gray-200">
+                      {/* Hour grid lines */}
+                      {Array.from({ length: VISIBLE_END_HOUR - VISIBLE_START_HOUR }, (_, i) => {
+                        const topPct = ((i + 1) * 60 / TOTAL_MINUTES) * 100;
+                        return (
+                          <div
+                            key={i}
+                            className="absolute w-full border-t border-gray-200"
+                            style={{ top: `${topPct}%` }}
+                          />
+                        );
+                      })}
 
-                  {/* day columns */}
-                  {days.map((day) => (
-                    <div
-                      key={day}
-                      className="relative border-l"
-                      style={{ minHeight: 600, padding: "6px 4px" }}
-                    >
-                      {/* background stripes */}
+                      {/* Reservations for this day */}
                       <div className="absolute inset-0">
-                        {Array.from({ length: VISIBLE_END_HOUR - VISIBLE_START_HOUR }, (_, i) => {
-                          const top = (i / (VISIBLE_END_HOUR - VISIBLE_START_HOUR)) * 100;
-                          const height = (1 / (VISIBLE_END_HOUR - VISIBLE_START_HOUR)) * 100;
-                          return (
-                            <div
-                              key={i}
-                              style={{ top: `${top}%`, height: `${height}%` }}
-                              className={`absolute left-0 right-0 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
-                            />
-                          );
-                        })}
-                      </div>
+                        {(() => {
+                          // Group overlapping reservations to avoid duplicates
+                          const renderedGroups = new Set<string>();
+                          const slots = timeSlotData[dayObj.key] || [];
+                          
+                          return slots.map((entry, idx) => {
+                            const startStr = new Date(entry.res.startTime).toLocaleTimeString("es-ES", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+                            const endStr = new Date(entry.res.endTime).toLocaleTimeString("es-ES", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
 
-                      {/* reservations blocks for this day */}
-                      <div className="relative" style={{ minHeight: 600 }}>
-                        {renderedByDay[day]?.map((entry, idx) => {
-                          const ratio = clamp(entry.overlapCount / Math.max(1, capacity), 0, 1);
-                          const colorClass = getColorByRatio(ratio);
-                          const start = new Date(entry.res.startTime);
-                          const end = new Date(entry.res.endTime);
-                          const startStr = start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                          const endStr = end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                            // Calculate overlapping reservations for capacity ratio
+                            const overlappingReservations = slots.filter(other => {
+                              const otherStart = new Date(other.res.startTime);
+                              const otherEnd = new Date(other.res.endTime);
+                              const currentStart = new Date(entry.res.startTime);
+                              const currentEnd = new Date(entry.res.endTime);
+                              
+                              // Check if time periods overlap
+                              return otherStart < currentEnd && otherEnd > currentStart;
+                            });
 
-                          const gapPx = 6;
-                          const colWidthPct = 100 / entry.colCount;
-                          const leftPct = entry.colIndex * colWidthPct;
-                          const leftCalc = `calc(${leftPct}% + ${gapPx / 2}px)`;
-                          const widthCalc = `calc(${colWidthPct}% - ${gapPx}px)`;
+                            // Create a unique key for this overlapping group
+                            const groupKey = overlappingReservations
+                              .map(r => r.res.id)
+                              .sort()
+                              .join('-');
 
-                          return (
-                            <div
-                              key={`${day}-${idx}-${entry.res.startTime}`}
-                              title={`${startStr} → ${endStr} — concurrent: ${entry.overlapCount}/${capacity}`}
-                              className={`absolute rounded-md px-2 py-1 text-xs shadow-sm ${colorClass}`}
-                              style={{
-                                top: `${entry.topPct}%`,
-                                height: `${entry.heightPct}%`,
-                                left: leftCalc,
-                                width: widthCalc,
-                                zIndex: 10 + idx,
-                                overflow: "hidden",
-                                whiteSpace: "nowrap",
-                                textOverflow: "ellipsis",
-                              }}
-                            >
-                              <div className="font-semibold text-sm truncate">
-                               {entry.res.user?.name ? entry.res.user.name : `User ${entry.res.user?.id ?? ""}`}
+                            // Only render the first occurrence of each group
+                            if (renderedGroups.has(groupKey)) {
+                              return null;
+                            }
+                            renderedGroups.add(groupKey);
+
+                            const ratio = overlappingReservations.length / capacity;
+                            const colorClass = getColorByRatio(ratio);
+                            const widthPct = entry.colCount > 0 ? 100 / entry.colCount : 100;
+                            const leftPct = (entry.colIndex * widthPct);
+
+                            return (
+                              <div
+                                key={`group-${groupKey}-${idx}`}
+                                className={`absolute rounded-lg p-1 border border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-all ${colorClass}`}
+                                style={{
+                                  top: `${entry.topPct}%`,
+                                  height: `${Math.max(entry.heightPct, 8)}%`, // Minimum 8% height for readability
+                                  left: `${leftPct}%`,
+                                  width: `${widthPct - 2}%`,
+                                  minHeight: "40px" // Increased from 24px to 40px
+                                }}
+                                onClick={() => {
+                                  setSelectedSlot({
+                                    reservations: overlappingReservations.map(e => e.res),
+                                    timeSlot: `${startStr} - ${endStr}`,
+                                    day: dayObj.label
+                                  });
+                                }}
+                              >
+                                <div className="font-semibold text-xs truncate flex items-center gap-1">
+                                  {overlappingReservations.length > 1 ? (
+                                    <>
+                                      <Users className="w-3 h-3 flex-shrink-0" />
+                                      <span>{overlappingReservations.length}</span>
+                                    </>
+                                  ) : (
+                                    <span className="truncate">
+                                      {entry.res.user?.name ? entry.res.user.name : `User ${entry.res.user?.id ?? ""}`}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] opacity-90 truncate flex items-center gap-1 mt-0.5">
+                                  <Clock className="w-2 h-2 flex-shrink-0" />
+                                  <span className="truncate">{startStr} - {endStr}</span>
+                                </div>
                               </div>
-                              <div className="text-[11px] opacity-90 truncate">{startStr} - {endStr}</div>
-                            </div>
-                          );
-                        })}
+                            );
+                          }).filter(Boolean); // Remove null entries
+                        })()}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* legend */}
-            <div className="mt-4 flex gap-3 items-center text-sm">
-              <div className="px-3 py-1 rounded bg-green-400 text-black">Libre</div>
-              <div className="px-3 py-1 rounded bg-yellow-300 text-black">Moderado</div>
-              <div className="px-3 py-1 rounded bg-orange-600 text-white">Alto</div>
-              <div className="px-3 py-1 rounded bg-red-600 text-white">Lleno</div>
+            <div className="mt-4 flex gap-3 items-center text-sm flex-wrap">
+              <div className="px-3 py-1 rounded bg-green-400 text-black border border-green-500 font-medium">
+                Libre (&lt;50%)
+              </div>
+              <div className="px-3 py-1 rounded bg-yellow-400 text-black border border-yellow-500 font-medium">
+                Moderado (50-80%)
+              </div>
+              <div className="px-3 py-1 rounded bg-orange-500 text-white border border-orange-600 font-medium">
+                Alto (80-100%)
+              </div>
+              <div className="px-3 py-1 rounded bg-red-500 text-white border border-red-600 font-medium">
+                Lleno (100%+)
+              </div>
+              <div className="flex items-center gap-1 text-gray-600 ml-4">
+                <Users className="w-4 h-4" />
+                <span>Click para ver detalles</span>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Detail Modal for Multiple Reservations */}
+      {selectedSlot && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Reservas - {selectedSlot.day}
+              </h3>
+              <button
+                onClick={() => setSelectedSlot(null)}
+                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Clock className="w-4 h-4" />
+                <span className="font-medium">{selectedSlot.timeSlot}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {selectedSlot.reservations.map((reservation, idx) => (
+                <div 
+                  key={`${reservation.id}-${idx}`}
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    {reservation.user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-800">
+                      {reservation.user?.name || `Usuario ${reservation.user?.id || 'Desconocido'}`}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      ID: {reservation.id || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 text-sm text-gray-600 text-center">
+              {selectedSlot.reservations.length} persona(s) en este horario
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      <LoadingOverlay isVisible={isLoading || isLoadingReservations} text="Cargando disponibilidad..." />
     </>
   );
 }
