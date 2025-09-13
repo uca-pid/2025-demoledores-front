@@ -8,6 +8,9 @@ import { getReservationsByAmenity } from "../api_calls/get_amenity_reservations"
 import { updateUserName } from "../api_calls/update_user_name";
 import { updateUserPassword } from "../api_calls/update_user_password";
 import { deleteUser } from "../api_calls/delete_user";
+import { cancelReservation } from "../api_calls/cancel_reservation";
+import { hideReservationFromUser } from "../api_calls/hide_reservation";
+
 
 // Componentes reutilizables
 import DashboardHeader from "../components/DashboardHeader";
@@ -18,6 +21,7 @@ import DeleteAccountModal from "../components/DeleteAccountModal";
 import SpaceSelector from "../components/SpaceSelector";
 import TimeSelector from "../components/TimeSelector";
 import ReservationList from "../components/ReservationList";
+import { LoadingOverlay } from "../components/LoadingSpinner";
 
 // Tipos
 import type { UserData, ReservationData, Reservation, Amenity } from "../types";
@@ -43,33 +47,43 @@ function Dashboard() {
     const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
     const [newName, setNewName] = useState("");
 
+    // Loading states
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isReserving, setIsReserving] = useState(false);
+    const [isCancelling, setIsCancelling] = useState<number | null>(null);
+    const [isHiding, setIsHiding] = useState<number | null>(null);
+    const [isSavingName, setIsSavingName] = useState(false);
+
     useEffect(() => {
         const savedToken = localStorage.getItem("token");
         if (!savedToken) {
             setToken(null);
+            setIsInitialLoading(false);
             return;
         }
         setToken(savedToken);
 
-        fetch(`${API_URL}/dashboard`, {
-            headers: {
-                Authorization: `Bearer ${savedToken}`,
-                "Content-Type": "application/json",
-            },
+        Promise.all([
+            fetch(`${API_URL}/dashboard`, {
+                headers: {
+                    Authorization: `Bearer ${savedToken}`,
+                    "Content-Type": "application/json",
+                },
+            }).then((res) => res.json()),
+            
+            fetch(`${API_URL}/amenities`, {
+                headers: { Authorization: `Bearer ${savedToken}` },
+            }).then((res) => res.json())
+        ])
+        .then(([dashboardData, amenitiesData]) => {
+            setUserData(dashboardData);
+            setNewName(dashboardData.user.name);
+            setAmenities(amenitiesData);
         })
-            .then((res) => res.json())
-            .then((data) => {
-                setUserData(data);
-                setNewName(data.user.name);
-            })
-            .catch(console.error);
-
-        fetch(`${API_URL}/amenities`, {
-            headers: { Authorization: `Bearer ${savedToken}` },
-        })
-            .then((res) => res.json())
-            .then(setAmenities)
-            .catch(console.error);
+        .catch(console.error)
+        .finally(() => {
+            setIsInitialLoading(false);
+        });
     }, []);
 
     useEffect(() => {
@@ -98,13 +112,23 @@ function Dashboard() {
             .catch(console.error);
     }, [token]);
 
-    if (token === undefined) return <p>Loading...</p>;
+    if (token === undefined || isInitialLoading) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <LoadingOverlay isVisible={true} text="Cargando dashboard..." />
+            </div>
+        );
+    }
     if (!token) return <Navigate to="/login" />;
 
     const handleReserve = async () => {
+        setIsReserving(true);
         try {
             const [startStr, endStr] = selectedTime.split(" - ");
-            const baseDate = new Date(selectedDate);
+            
+            // Crear fecha en zona horaria local, no UTC
+            const [year, month, day] = selectedDate.split('-').map(Number);
+            const baseDate = new Date(year, month - 1, day); // month es 0-indexado
             const startDateTime = new Date(baseDate);
             const endDateTime = new Date(baseDate);
 
@@ -113,15 +137,18 @@ function Dashboard() {
             startDateTime.setHours(sh, sm, 0, 0);
             endDateTime.setHours(eh, em, 0, 0);
 
+            console.log('Reserva creada para:', baseDate.toDateString(), 'de', startStr, 'a', endStr);
+
             const amenity = amenities.find((a) => a.name === selectedSpace);
             if (!amenity) return;
 
-            await createReservation(token, {
+            const reservationData = await createReservation(token, {
                 amenityId: amenity.id,
                 startTime: startDateTime.toISOString(),
                 endTime: endDateTime.toISOString(),
             });
 
+            // Actualizar contador de reservas
             setReservations((prev) => ({
                 ...prev,
                 [selectedSpace]: {
@@ -130,20 +157,41 @@ function Dashboard() {
                 },
             }));
 
+            // Crear la nueva reserva para añadir a la lista
+            const newReservation: Reservation = {
+                id: reservationData.id || reservationData.reservation?.id || Date.now(),
+                startTime: startDateTime.toISOString(),
+                endTime: endDateTime.toISOString(),
+                status: reservationData.status || reservationData.reservation?.status || "pending",
+                amenity: {
+                    id: amenity.id,
+                    name: amenity.name,
+                }
+            };
+
+            // Añadir la nueva reserva al principio de la lista (más reciente primero)
+            setUserReservations((prev) => [newReservation, ...prev]);
+
             setTimeError(null);
             setSuccessMessage(`✅ Reserva confirmada para ${selectedSpace} a las ${selectedTime}`);
             setTimeout(() => setSuccessMessage(null), 5000);
-        } catch (err) {
-            setTimeError(err instanceof Error ? err.message : "Error al realizar la reserva");
+
+
+        } catch (err: any) {
+            setTimeError(err.message);
+        } finally {
+            setIsReserving(false);
         }
     };
 
     const handleSaveName = async () => {
         if (!token) return;
+        setIsSavingName(true);
         try {
             await updateUserName(token, { name: newName });
             setUserData((prev) => prev && { ...prev, user: { ...prev.user, name: newName } });
             setShowEditPopup(false);
+
         } catch (err) {
             alert("Error al actualizar nombre: " + (err instanceof Error ? err.message : "Error desconocido"));
         }
@@ -188,6 +236,7 @@ function Dashboard() {
         } catch (err) {
             setShowDeleteConfirm(false);
             alert("Error al eliminar la cuenta: " + (err instanceof Error ? err.message : "Error desconocido"));
+
         }
     };
 
@@ -234,6 +283,7 @@ function Dashboard() {
                 newName={newName}
                 onNameChange={setNewName}
                 onSave={handleSaveName}
+                isSaving={isSavingName}
             />
 
             {/* POPUP CAMBIAR CONTRASEÑA */}
@@ -262,9 +312,10 @@ function Dashboard() {
                 }}
             />
 
+
             {selectedSpace && token && (() => {
                 const amenity = amenities.find(a => a.name === selectedSpace);
-                if (!amenity) return null; // or a loading placeholder
+                if (!amenity) return null;
 
                 return (
                     <section className="mb-12">
@@ -272,6 +323,7 @@ function Dashboard() {
                             amenityId={amenity.id}
                             amenityName={selectedSpace}
                             capacity={amenity.capacity || 1}
+                            isLoading={isInitialLoading}
                             fetchReservations={async (id) => {
                                 if (!token) return [];
                                 return getReservationsByAmenity(token, id);
@@ -281,65 +333,61 @@ function Dashboard() {
                 );
             })()}
 
+            {/* Layout de selección - Amenities a la izquierda, Horario a la derecha */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12 items-start">
+                {/* Columna izquierda - Selector de amenities */}
+                <SpaceSelector
+                    spaces={amenities}
+                    selectedSpace={selectedSpace}
+                    onSpaceSelect={setSelectedSpace}
+                    getAvailableTimesCount={(spaceName) => {
+                        const times = reservations[spaceName] ? Object.keys(reservations[spaceName]) : [];
+                        return times.length;
+                    }}
+                />
 
+                {/* Columna derecha - Selector de horario */}
+                <TimeSelector
+                    selectedSpace={selectedSpace}
+                    selectedTime={selectedTime}
+                    selectedDate={selectedDate}
+                    amenities={amenities}
+                    reservations={reservations}
+                    timeError={timeError}
+                    onTimeChange={(newTime) => {
+                        const [start, end] = newTime.split(" - ");
+                        const space = amenities.find(a => a.name === selectedSpace);
+                        const maxDuration = space?.maxDuration || 60;
 
-            {/* Selección de horario dinámica e integrada */}
-            <TimeSelector
-                selectedSpace={selectedSpace}
-                selectedTime={selectedTime}
-                selectedDate={selectedDate}
-                amenities={amenities}
-                reservations={reservations}
-                timeError={timeError}
-                onTimeChange={(newTime) => {
-                    const [start, end] = newTime.split(" - ");
-                    const space = amenities.find(a => a.name === selectedSpace);
-                    const maxDuration = space?.maxDuration || 60;
+                        const [sh, sm] = start.split(":").map(Number);
+                        const [eh, em] = end.split(":").map(Number);
+                        const duration = (eh * 60 + em) - (sh * 60 + sm);
 
-                    const [sh, sm] = start.split(":").map(Number);
-                    const [eh, em] = end.split(":").map(Number);
-                    const duration = (eh * 60 + em) - (sh * 60 + sm);
+                        if (duration > maxDuration) {
+                            setTimeError(`⛔ La duración máxima para ${selectedSpace} es de ${maxDuration} minutos`);
+                            return;
+                        }
 
-                    if (duration > maxDuration) {
-                        setTimeError(`⛔ La duración máxima para ${selectedSpace} es de ${maxDuration} minutos`);
-                        return;
-                    }
+                        setSelectedTime(newTime);
+                        setTimeError(null);
+                    }}
+                    onDateChange={setSelectedDate}
+                    onReserve={handleReserve}
+                    successMessage={successMessage}
+                    isReserving={isReserving}
+                />
+            </div>
 
-                    setSelectedTime(newTime);
-                    setTimeError(null);
-                }}
-                onDateChange={setSelectedDate}
-                onReserve={handleReserve}
-                successMessage={successMessage}
-            />
-
-
-            {/* Resumen de reservas del usuario */}
+            {/* Resumen de reservas del usuario - Ancho completo */}
             <ReservationList
                 reservations={userReservations}
-                onCancelReservation={async (reservationId) => {
-                    if (!token) return;
-                    try {
-                        const resApi = await fetch(`${API_URL}/reservations/${reservationId}/cancel`, {
-                            method: "PATCH",
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                            },
-                        });
-                        const data = await resApi.json();
-                        if (!resApi.ok) throw new Error(data.message || "Error canceling reservation");
 
-                        // update local state
-                        setUserReservations(prev =>
-                            prev.map(r => r.id === reservationId ? { ...r, status: "cancelled" } : r)
-                        );
-                    } catch (err) {
-                        console.error(err);
-                        alert("Error canceling reservation: " + (err instanceof Error ? err.message : "Error desconocido"));
-                    }
-                }}
+                onCancelReservation={handleCancelReservation}
+                onRemoveFromView={handleRemoveFromView}
+                cancellingId={isCancelling}
+                hidingId={isHiding}
+
             />
-
         </div>
     );
 }
