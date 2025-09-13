@@ -9,27 +9,15 @@ function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    const tempErrors: typeof errors = {};
+    let tempErrors: typeof errors = {};
 
     if (!name) tempErrors.name = 'El nombre es obligatorio';
     if (!email) tempErrors.email = 'El correo es obligatorio';
-    if (!password) {
-      tempErrors.password = 'La contraseña es obligatoria';
-    } else {
-      // Password validation with same conditions as ChangePasswordModal
-      if (password.length < 6) {
-        tempErrors.password = 'La contraseña debe tener al menos 6 caracteres';
-      } else if (!/[A-Z]/.test(password)) {
-        tempErrors.password = 'La contraseña debe tener al menos una letra mayúscula';
-      } else if (!/[0-9]/.test(password)) {
-        tempErrors.password = 'La contraseña debe tener al menos un número';
-      }
-    }
+    if (!password) tempErrors.password = 'La contraseña es obligatoria';
     if (password !== confirmPassword) tempErrors.confirmPassword = 'Las contraseñas no coinciden';
 
     setErrors(tempErrors);
@@ -88,37 +76,10 @@ function Register() {
               placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onFocus={() => setShowPasswordRequirements(true)}
-              onBlur={() => setShowPasswordRequirements(false)}
               className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all ${errors.password ? 'border-red-500' : 'border-gray-300'
                 }`}
             />
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-            
-            {/* Password requirements - only shown when focused */}
-            {showPasswordRequirements && (
-              <div className="mt-2 text-xs space-y-1">
-                <p className="text-gray-600 font-medium">La contraseña debe tener:</p>
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${password.length >= 6 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                  <span className={password.length >= 6 ? 'text-green-600' : 'text-gray-500'}>
-                    Al menos 6 caracteres
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${/[A-Z]/.test(password) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                  <span className={/[A-Z]/.test(password) ? 'text-green-600' : 'text-gray-500'}>
-                    Al menos una letra mayúscula
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${/[0-9]/.test(password) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                  <span className={/[0-9]/.test(password) ? 'text-green-600' : 'text-gray-500'}>
-                    Al menos un número
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Confirm Password */}
