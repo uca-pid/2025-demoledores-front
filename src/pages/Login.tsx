@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineMail, HiOutlineLockClosed } from 'react-icons/hi';
 import { login } from '../api_calls/auth';
+import { forgotPassword } from '../api_calls/forgot_password';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -17,6 +20,10 @@ function Login() {
 
     if (result.success) navigate("/dashboard");
     else setErrors({ email: result.message || 'Error en el inicio de sesión' });
+  };
+
+  const handleForgotPassword = async (email: string) => {
+    await forgotPassword({ email });
   };
 
 
@@ -62,6 +69,17 @@ function Login() {
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
           </div>
 
+          {/* Forgot Password Link */}
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-sm text-gray-600 hover:text-gray-800 hover:underline cursor-pointer"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+
           {/* Login button */}
           <button
             type="submit"
@@ -81,6 +99,13 @@ function Login() {
             Registrate
           </span>
         </p>
+
+        {/* Forgot Password Modal */}
+        <ForgotPasswordModal
+          isVisible={showForgotPassword}
+          onClose={() => setShowForgotPassword(false)}
+          onSendEmail={handleForgotPassword}
+        />
       </div>
     </div>
   );
