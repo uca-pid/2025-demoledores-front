@@ -10,10 +10,10 @@ function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-    const [apartmentId, setApartmentId] = useState<number | ''>('');
+  const [apartmentId, setApartmentId] = useState<number | ''>('');
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
-    const [errors, setErrors] = useState<{
+  const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
@@ -57,11 +57,11 @@ function Register() {
     setErrors(tempErrors);
 
     if (Object.keys(tempErrors).length === 0) {
-      register({ 
-        name, 
-        email, 
-        password, 
-        apartmentId: typeof apartmentId === 'number' ? apartmentId : undefined 
+      register({
+        name,
+        email,
+        password,
+        apartmentId: typeof apartmentId === 'number' ? apartmentId : undefined
       }).then((result) => {
         if (result.success) navigate('/login');
         else setErrors({ email: result.message || 'Error en el registro' });
@@ -140,7 +140,7 @@ function Register() {
                 }`}
             />
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-            
+
             {/* Password requirements - only shown when focused */}
             {showPasswordRequirements && (
               <div className="mt-2 text-xs space-y-1">
