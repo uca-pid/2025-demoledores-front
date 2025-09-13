@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { createReservation } from "../api_calls/post_reservation";
 
 import AvailabilityViewer from "../components/reservation_available_dates";
@@ -36,6 +37,7 @@ function Dashboard() {
     const [showProfile, setShowProfile] = useState(false);
     const [showEditPopup, setShowEditPopup] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
+    const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
     const [newName, setNewName] = useState("");
 
     useEffect(() => {
@@ -149,8 +151,37 @@ function Dashboard() {
         await updateUserPassword(token, { currentPassword, newPassword });
     };
 
+    const handleLogout = () => {
+        setShowProfile(false); // Close the profile panel first
+        setLogoutMessage("✅ Sesión cerrada exitosamente");
+        
+        setTimeout(() => {
+            localStorage.removeItem("token");
+            setTimeout(() => {
+                window.location.href = "/login";
+            }, 500); // Additional delay to ensure the notification is seen
+        }, 1000); // Show notification for 1 second before starting logout process
+    };
+
     return (
         <div className="min-h-screen bg-gray-100 p-8 relative overflow-hidden">
+            {/* LOGOUT NOTIFICATION */}
+            <AnimatePresence>
+                {logoutMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 100, scale: 0.8 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: 100, scale: 0.8 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                        className="fixed top-4 right-4 z-[60] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border-2 border-green-400"
+                    >
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg font-semibold">{logoutMessage}</span>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* HEADER */}
             <DashboardHeader
                 userName={userData?.user.name || ""}
@@ -164,10 +195,7 @@ function Dashboard() {
                 userName={userData?.user.name || ""}
                 onEditProfile={() => setShowEditPopup(true)}
                 onChangePassword={() => setShowPasswordPopup(true)}
-                onLogout={() => {
-                    localStorage.removeItem("token");
-                    window.location.href = "/login";
-                }}
+                onLogout={handleLogout}
             />
 
             {/* POPUP EDITAR */}

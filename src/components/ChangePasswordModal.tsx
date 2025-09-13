@@ -17,6 +17,7 @@ function ChangePasswordModal({
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [showRequirements, setShowRequirements] = useState(false);
 
     const resetForm = () => {
         setCurrentPassword("");
@@ -24,6 +25,7 @@ function ChangePasswordModal({
         setConfirmPassword("");
         setError("");
         setIsLoading(false);
+        setShowRequirements(false);
     };
 
     const handleClose = () => {
@@ -47,6 +49,16 @@ function ChangePasswordModal({
 
         if (newPassword.length < 6) {
             setError("La nueva contraseña debe tener al menos 6 caracteres");
+            return;
+        }
+
+        if (!/[A-Z]/.test(newPassword)) {
+            setError("La nueva contraseña debe tener al menos una letra mayúscula");
+            return;
+        }
+
+        if (!/[0-9]/.test(newPassword)) {
+            setError("La nueva contraseña debe tener al menos un número");
             return;
         }
 
@@ -103,14 +115,49 @@ function ChangePasswordModal({
                                 disabled={isLoading}
                             />
                             
-                            <input
-                                type="password"
-                                placeholder="Nueva contraseña"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none"
-                                disabled={isLoading}
-                            />
+                            <div>
+                                <input
+                                    type="password"
+                                    placeholder="Nueva contraseña"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    onFocus={() => setShowRequirements(true)}
+                                    onBlur={() => setShowRequirements(false)}
+                                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none"
+                                    disabled={isLoading}
+                                />
+                                
+                                {/* Password requirements - only shown when focused */}
+                                {showRequirements && (
+                                    <div className="mt-2 text-xs space-y-1">
+                                        <p className="text-gray-600 font-medium">La contraseña debe tener:</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`w-2 h-2 rounded-full ${newPassword.length >= 6 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                                            <span className={newPassword.length >= 6 ? 'text-green-600' : 'text-gray-500'}>
+                                                Al menos 6 caracteres
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`w-2 h-2 rounded-full ${/[A-Z]/.test(newPassword) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                                            <span className={/[A-Z]/.test(newPassword) ? 'text-green-600' : 'text-gray-500'}>
+                                                Al menos una letra mayúscula
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`w-2 h-2 rounded-full ${/[0-9]/.test(newPassword) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                                            <span className={/[0-9]/.test(newPassword) ? 'text-green-600' : 'text-gray-500'}>
+                                                Al menos un número
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`w-2 h-2 rounded-full ${currentPassword && newPassword && currentPassword !== newPassword ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                                            <span className={currentPassword && newPassword && currentPassword !== newPassword ? 'text-green-600' : 'text-gray-500'}>
+                                                Diferente a la contraseña actual
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             
                             <input
                                 type="password"
