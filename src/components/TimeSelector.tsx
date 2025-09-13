@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import type { ReservationData, Amenity } from "../types";
 import { LoadingButton } from "./LoadingSpinner";
 import { Calendar, Clock, Users, ChevronDown } from "lucide-react";
@@ -14,6 +15,8 @@ interface TimeSelectorProps {
     onReserve: () => void;
     successMessage: string | null;
     isReserving?: boolean;
+    // New prop to get real-time reservation count
+    getCurrentReservationCount?: (amenityName: string, date: string, timeSlot: string) => Promise<number>;
 }
 
 // Generate time slots in 30-minute intervals
@@ -79,18 +82,43 @@ function TimeSelector({
     selectedTime,
     selectedDate,
     amenities,
-    reservations,
     timeError,
     onTimeChange,
     onDateChange,
     onReserve,
     successMessage,
-    isReserving = false
+    isReserving = false,
+    getCurrentReservationCount
 }: TimeSelectorProps) {
+    const [currentReservationCount, setCurrentReservationCount] = useState<number>(0);
+    const [isLoadingCount, setIsLoadingCount] = useState(false);
+    
     const selectedAmenity = amenities.find(a => a.name === selectedSpace);
     const maxDuration = selectedAmenity?.maxDuration || 60;
     
     const timeSlots = generateTimeSlots();
+    
+    // Update reservation count when date, time, or space changes
+    useEffect(() => {
+        const updateReservationCount = async () => {
+            if (getCurrentReservationCount && selectedSpace && selectedDate && selectedTime) {
+                setIsLoadingCount(true);
+                try {
+                    const count = await getCurrentReservationCount(selectedSpace, selectedDate, selectedTime);
+                    setCurrentReservationCount(count);
+                } catch (error) {
+                    console.error('Error fetching reservation count:', error);
+                    setCurrentReservationCount(0);
+                } finally {
+                    setIsLoadingCount(false);
+                }
+            } else {
+                setCurrentReservationCount(0);
+            }
+        };
+
+        updateReservationCount();
+    }, [selectedSpace, selectedDate, selectedTime, getCurrentReservationCount]);
     
     // Parse current selected time
     const [currentStart, currentEnd] = selectedTime.split(" - ");
@@ -247,7 +275,11 @@ function TimeSelector({
                             Reservas actuales
                         </span>
                         <span className="font-bold text-gray-800">
-                            {reservations[selectedSpace]?.[selectedTime] || 0}
+                            {isLoadingCount ? (
+                                <span className="animate-pulse">...</span>
+                            ) : (
+                                currentReservationCount
+                            )}
                         </span>
                     </div>
                 </div>

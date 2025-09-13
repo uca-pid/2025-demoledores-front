@@ -90,18 +90,11 @@ export default function AvailabilityTimelineViewer({
       setIsLoadingReservations(true);
       
       // Get date range for current week
-      const startOfWeek = new Date(days[0].date);
       const endOfWeek = new Date(days[6].date);
       endOfWeek.setHours(23, 59, 59, 999);
       
-      const startDate = startOfWeek.toISOString().split('T')[0];
-      const endDate = endOfWeek.toISOString().split('T')[0];
-      
-      console.log('Fetching reservations for dates:', startDate, 'to', endDate);
-      
       fetchReservations(amenityId)
         .then((data) => {
-          console.log('Reservations loaded:', data);
           setReservations(data);
         })
         .catch(console.error)
@@ -212,10 +205,14 @@ export default function AvailabilityTimelineViewer({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+        className="group relative px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 flex items-center gap-3 font-medium transform hover:scale-105"
       >
-        <Calendar className="w-4 h-4" />
-        Ver disponibilidad (Timeline)
+        <div className="relative">
+          <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </div>
+        <span className="text-sm tracking-wide">Ver disponibilidad (Timeline)</span>
+        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300"></div>
       </button>
 
       {open && (
@@ -350,19 +347,23 @@ export default function AvailabilityTimelineViewer({
 
                             const ratio = overlappingReservations.length / capacity;
                             const colorClass = getColorByRatio(ratio);
-                            const widthPct = entry.colCount > 0 ? 100 / entry.colCount : 100;
-                            const leftPct = (entry.colIndex * widthPct);
+                            
+                            // Instead of dividing width, use full width with slight offset for overlapping cards
+                            const widthPct = 90; // Use 90% width to leave some margin
+                            const offsetStep = 3; // 3% offset for each overlapping card
+                            const leftPct = Math.min(entry.colIndex * offsetStep, 15); // Max 15% offset to avoid going off-screen
 
                             return (
                               <div
                                 key={`group-${groupKey}-${idx}`}
-                                className={`absolute rounded-lg p-1 border border-gray-300 shadow-sm cursor-pointer hover:shadow-md transition-all ${colorClass}`}
+                                className={`absolute rounded-lg p-1 border-2 shadow-lg cursor-pointer hover:shadow-xl hover:z-10 transition-all ${colorClass}`}
                                 style={{
                                   top: `${entry.topPct}%`,
                                   height: `${Math.max(entry.heightPct, 8)}%`, // Minimum 8% height for readability
                                   left: `${leftPct}%`,
-                                  width: `${widthPct - 2}%`,
-                                  minHeight: "40px" // Increased from 24px to 40px
+                                  width: `${widthPct}%`,
+                                  minHeight: "40px", // Increased from 24px to 40px
+                                  zIndex: entry.colIndex + 1 // Higher z-index for cards that are more to the right
                                 }}
                                 onClick={() => {
                                   setSelectedSlot({
@@ -457,9 +458,6 @@ export default function AvailabilityTimelineViewer({
                   <div className="flex-1">
                     <div className="font-medium text-gray-800">
                       {reservation.user?.name || `Usuario ${reservation.user?.id || 'Desconocido'}`}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      ID: {reservation.id || 'N/A'}
                     </div>
                   </div>
                 </div>
