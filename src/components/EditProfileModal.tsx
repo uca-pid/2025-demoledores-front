@@ -53,7 +53,6 @@ function EditProfileModal({
                             </button>
                             <LoadingButton
                                 onClick={onSave}
-
                                 loading={isSaving}
                                 className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-all"
                                 loadingText="Guardando..."

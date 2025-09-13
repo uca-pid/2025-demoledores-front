@@ -1,11 +1,13 @@
 const API_URL = import.meta.env.VITE_API_URL as string;
 
-export interface UpdateUserPasswordPayload {
-  currentPassword: string;
-  newPassword: string;
+export interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  password?: string;
+  // agrega aquí otros campos editables del usuario según tu backend
 }
 
-export async function updateUserPassword(token: string, payload: UpdateUserPasswordPayload) {
+export async function updateUserPassword(token: string, payload: UpdateUserPayload) {
   const res = await fetch(`${API_URL}/user/password`, {
     method: "PATCH",
     headers: {
