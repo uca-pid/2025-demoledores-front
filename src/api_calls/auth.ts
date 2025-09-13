@@ -9,6 +9,7 @@ export interface RegisterData {
   name: string;
   email: string;
   password: string;
+  apartmentId?: number;
 }
 
 export interface AuthResponse {
@@ -33,11 +34,11 @@ export async function login({ email, password }: LoginData): Promise<AuthRespons
 }
 
 
-export async function register({ name, email, password }: RegisterData): Promise<AuthResponse> {
+export async function register({ name, email, password, apartmentId }: RegisterData): Promise<AuthResponse> {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, password, apartmentId }),
   });
   const data = await res.json();
   return { success: res.ok, data, message: data.message };
