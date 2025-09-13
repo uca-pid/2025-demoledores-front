@@ -1,30 +1,87 @@
 import { ChevronRight, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
 import type { Amenity } from "../types";
+import AvailabilityViewer from "./reservation_available_dates";
 
 interface SpaceSelectorProps {
     spaces: Amenity[];
     selectedSpace: string;
     onSpaceSelect: (spaceName: string) => void;
-    getAvailableTimesCount: (spaceName: string) => number;
+    selectedDate: string;
+    selectedTime: string;
+    getAmenityOccupancy: (amenityName: string, date: string, timeSlot: string) => Promise<number>;
+    token: string;
+    fetchReservations: (id: number) => Promise<any[]>;
 }
 
 function SpaceSelector({ 
     spaces, 
     selectedSpace, 
     onSpaceSelect, 
-    getAvailableTimesCount 
+    selectedDate,
+    selectedTime,
+    getAmenityOccupancy,
+    fetchReservations
 }: SpaceSelectorProps) {
+    // State to store occupancy percentages for each amenity
+    const [occupancyData, setOccupancyData] = useState<{ [amenityName: string]: number }>({});
+    const [loadingOccupancy, setLoadingOccupancy] = useState(false);
+
+    // Update occupancy data when date or time changes
+    useEffect(() => {
+        const updateOccupancyData = async () => {
+            if (!selectedDate || !selectedTime) return;
+            
+            setLoadingOccupancy(true);
+            const newOccupancyData: { [amenityName: string]: number } = {};
+
+            try {
+                // Calculate occupancy for each amenity
+                for (const space of spaces) {
+                    const occupancy = await getAmenityOccupancy(space.name, selectedDate, selectedTime);
+                    newOccupancyData[space.name] = occupancy;
+                }
+                setOccupancyData(newOccupancyData);
+            } catch (error) {
+                console.error('Error updating occupancy data:', error);
+            } finally {
+                setLoadingOccupancy(false);
+            }
+        };
+
+        updateOccupancyData();
+    }, [selectedDate, selectedTime, spaces, getAmenityOccupancy]);
     return (
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 h-full">
             {/* Header */}
             <div className="mb-8">
-                <div className="flex items-center gap-3">
-                    <MapPin className="w-6 h-6 text-gray-600" />
-                    <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                        Amenities
-                    </h2>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <MapPin className="w-6 h-6 text-gray-600" />
+                        <div>
+                            <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                                Amenities
+                            </h2>
+                            <p className="text-gray-600 text-lg mt-2">Selecciona un espacio para reservar</p>
+                        </div>
+                    </div>
+                    
+                    {/* Timeline Button */}
+                    {selectedSpace && (() => {
+                        const amenity = spaces.find(a => a.name === selectedSpace);
+                        if (!amenity) return null;
+
+                        return (
+                            <AvailabilityViewer
+                                amenityId={amenity.id}
+                                amenityName={selectedSpace}
+                                capacity={amenity.capacity || 1}
+                                isLoading={false}
+                                fetchReservations={fetchReservations}
+                            />
+                        );
+                    })()}
                 </div>
-                <p className="text-gray-600 text-lg mt-2">Selecciona un espacio para reservar</p>
             </div>
 
             {/* Amenities List */}
@@ -60,31 +117,36 @@ function SpaceSelector({
                             )}
                         </div>
                         
-                        {/* Progress indicator for available times */}
+                        {/* Progress indicator for occupancy */}
                         <div className="mt-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className={`text-sm font-medium ${
+                            <div className="flex justify-between items-center mb-1">
+                                <span className={`text-xs font-medium ${
                                     selectedSpace === space.name ? 'text-gray-300' : 'text-gray-600'
                                 }`}>
-                                    Disponibilidad
+                                    {loadingOccupancy ? 'Calculando...' : 
+                                     `Ocupación: ${Math.round(occupancyData[space.name] || 0)}%`}
                                 </span>
-                                <span className={`text-sm font-medium ${
+                                <span className={`text-xs ${
                                     selectedSpace === space.name ? 'text-gray-300' : 'text-gray-600'
                                 }`}>
-                                    {getAvailableTimesCount(space.name)} slots
+                                    {space.capacity} personas máx.
                                 </span>
                             </div>
                             <div className={`w-full bg-gray-200 rounded-full h-3 ${
                                 selectedSpace === space.name ? 'bg-gray-600' : ''
                             }`}>
                                 <div 
-                                    className={`h-3 rounded-full transition-all duration-300 ${
+                                    className={`h-3 rounded-full transition-all duration-500 ${
                                         selectedSpace === space.name 
                                             ? 'bg-white' 
-                                            : 'bg-gray-600'
+                                            : occupancyData[space.name] > 80 
+                                                ? 'bg-red-500' 
+                                                : occupancyData[space.name] > 50 
+                                                    ? 'bg-yellow-500' 
+                                                    : 'bg-green-500'
                                     }`}
                                     style={{ 
-                                        width: `${Math.min(100, (getAvailableTimesCount(space.name) / 10) * 100)}%` 
+                                        width: `${loadingOccupancy ? 0 : (occupancyData[space.name] || 0)}%` 
                                     }}
                                 ></div>
                             </div>
