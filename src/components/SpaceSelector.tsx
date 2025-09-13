@@ -85,7 +85,7 @@ function SpaceSelector({
             </div>
 
             {/* Amenities List */}
-            <div className="space-y-6 overflow-hidden">
+            <div className="space-y-6 max-h-[480px] sm:max-h-[560px] md:max-h-[640px] lg:max-h-[720px] overflow-y-auto pr-2 scrollbar-hidden">
                 {spaces.map((space) => (
                     <div
                         key={space.name}
