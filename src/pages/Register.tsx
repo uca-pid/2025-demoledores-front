@@ -10,7 +10,7 @@ function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [apartmentId, setApartmentId] = useState<number | ''>('');
+  const [apartmentId, setApartmentId] = useState<string>('');
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const [errors, setErrors] = useState<{
@@ -61,7 +61,7 @@ function Register() {
         name,
         email,
         password,
-        apartmentId: typeof apartmentId === 'number' ? apartmentId : undefined
+        apartmentId
       }).then((result) => {
         if (result.success) navigate('/login');
         else setErrors({ email: result.message || 'Error en el registro' });
@@ -112,7 +112,7 @@ function Register() {
             <HiOutlineHome className="absolute top-3 left-3 text-gray-500" size={20} />
             <select
               value={apartmentId || ''}
-              onChange={(e) => setApartmentId(e.target.value ? Number(e.target.value) : '')}
+              onChange={(e) => setApartmentId(e.target.value)}
               className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all cursor-pointer bg-white ${errors.apartment ? 'border-red-500' : 'border-gray-300'
                 }`}
             >

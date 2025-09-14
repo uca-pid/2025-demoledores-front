@@ -53,12 +53,15 @@ describe('Register Page', () => {
     
     const nameInput = screen.getByPlaceholderText('Nombre completo');
     const emailInput = screen.getByPlaceholderText('Correo electrónico');
+    const apartmentSelect = screen.getByDisplayValue('Selecciona un apartamento');
     const passwordInput = screen.getByPlaceholderText('Contraseña');
     const confirmPasswordInput = screen.getByPlaceholderText('Confirmar contraseña');
     const submitButton = screen.getByText('Registrarse');
     
     await user.type(nameInput, 'John Doe');
     await user.type(emailInput, 'john@example.com');
+    // Select an apartment to satisfy validation
+    await user.selectOptions(apartmentSelect, '1');
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'Password123');
     await user.click(submitButton);
@@ -66,7 +69,8 @@ describe('Register Page', () => {
     expect(register).toHaveBeenCalledWith({
       name: 'John Doe',
       email: 'john@example.com',
-      password: 'Password123'
+      password: 'Password123',
+      apartmentId: '1'
     });
     
     await waitFor(() => {
@@ -85,12 +89,15 @@ describe('Register Page', () => {
     
     const nameInput = screen.getByPlaceholderText('Nombre completo');
     const emailInput = screen.getByPlaceholderText('Correo electrónico');
+    const apartmentSelect = screen.getByDisplayValue('Selecciona un apartamento');
     const passwordInput = screen.getByPlaceholderText('Contraseña');
     const confirmPasswordInput = screen.getByPlaceholderText('Confirmar contraseña');
     const submitButton = screen.getByText('Registrarse');
     
     await user.type(nameInput, 'John Doe');
     await user.type(emailInput, 'existing@example.com');
+    // Select an apartment to satisfy validation
+    await user.selectOptions(apartmentSelect, '1A');
     await user.type(passwordInput, 'Password123');
     await user.type(confirmPasswordInput, 'Password123');
     await user.click(submitButton);

@@ -9,7 +9,7 @@ export interface RegisterData {
   name: string;
   email: string;
   password: string;
-  apartmentId?: number;
+  apartmentId?: string;
 }
 
 export interface AuthResponse {

@@ -155,6 +155,25 @@ export const handlers = [
     ]);
   }),
 
+  // Apartments endpoint for registration (simple list)
+  http.get(`${BASE_URL}/apartments`, () => {
+    return HttpResponse.json([
+      { id: 1, unit: '1A', floor: 1, rooms: 2, ownerId: 1 },
+      { id: 2, unit: '1B', floor: 1, rooms: 2, ownerId: 2 },
+      { id: 3, unit: '2A', floor: 2, rooms: 3, ownerId: 3 },
+      { id: 4, unit: '2B', floor: 2, rooms: 3, ownerId: 4 }
+    ]);
+  }),
+
+  http.get('/apartments', () => {
+    return HttpResponse.json([
+      { id: 1, unit: '1A', floor: 1, rooms: 2, ownerId: 1 },
+      { id: 2, unit: '1B', floor: 1, rooms: 2, ownerId: 2 },
+      { id: 3, unit: '2A', floor: 2, rooms: 3, ownerId: 3 },
+      { id: 4, unit: '2B', floor: 2, rooms: 3, ownerId: 4 }
+    ]);
+  }),
+
   http.post(`${BASE_URL}/admin/apartments`, () => {
     return HttpResponse.json({
       id: 3,
