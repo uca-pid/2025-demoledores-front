@@ -1,6 +1,8 @@
 import { User, LogOut, Settings } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import LogoutConfirmModal from "./LogoutConfirmModal";
+import LogoutSuccessToast from "./LogoutSuccessToast";
 
 interface HeaderProps {
     userName: string;
@@ -12,6 +14,8 @@ interface HeaderProps {
 function Header({ userName, onProfileClick, showProfileMenu = true, onLogout }: HeaderProps) {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Close menu when clicking outside
@@ -27,11 +31,29 @@ function Header({ userName, onProfileClick, showProfileMenu = true, onLogout }: 
     }, []);
 
     const handleLogout = () => {
+        setShowLogoutModal(true);
+        setIsMenuOpen(false);
+    };
+
+    const handleConfirmLogout = () => {
+        setShowLogoutModal(false);
+        
+        // Clear storage
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
         if (onLogout) onLogout();
+        
+        // Show success toast
+        setShowSuccessToast(true);
+    };
+
+    const handleCancelLogout = () => {
+        setShowLogoutModal(false);
+    };
+
+    const handleLogoutComplete = () => {
+        setShowSuccessToast(false);
         navigate('/login');
-        setIsMenuOpen(false);
     };
 
     return (
@@ -53,7 +75,7 @@ function Header({ userName, onProfileClick, showProfileMenu = true, onLogout }: 
 
                     {/* Center - Navigation (for future expansion) */}
                     <nav className="hidden md:flex items-center space-x-8">
-                        <button className="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+                        <button className="text-gray-700 hover:text-gray-900 font-medium transition-colors cursor-pointer">
                             Dashboard
                         </button>
                         <button className="text-gray-500 hover:text-gray-700 font-medium transition-colors cursor-not-allowed">
@@ -69,7 +91,7 @@ function Header({ userName, onProfileClick, showProfileMenu = true, onLogout }: 
                         <div className="relative" ref={menuRef}>
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors group"
+                                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors group cursor-pointer"
                             >
                                 <div className="text-right hidden sm:block">
                                     <p className="text-sm font-medium text-gray-900">
@@ -90,7 +112,7 @@ function Header({ userName, onProfileClick, showProfileMenu = true, onLogout }: 
                                             onProfileClick();
                                             setIsMenuOpen(false);
                                         }}
-                                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                                     >
                                         <Settings className="w-4 h-4" />
                                         <span>Configuración</span>
@@ -100,7 +122,7 @@ function Header({ userName, onProfileClick, showProfileMenu = true, onLogout }: 
                                     
                                     <button
                                         onClick={handleLogout}
-                                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                     >
                                         <LogOut className="w-4 h-4" />
                                         <span>Cerrar sesión</span>
@@ -111,6 +133,19 @@ function Header({ userName, onProfileClick, showProfileMenu = true, onLogout }: 
                     )}
                 </div>
             </div>
+            
+            {/* Logout Confirmation Modal */}
+            <LogoutConfirmModal
+                isVisible={showLogoutModal}
+                onConfirm={handleConfirmLogout}
+                onCancel={handleCancelLogout}
+            />
+            
+            {/* Logout Success Toast */}
+            <LogoutSuccessToast
+                isVisible={showSuccessToast}
+                onComplete={handleLogoutComplete}
+            />
         </header>
     );
 }

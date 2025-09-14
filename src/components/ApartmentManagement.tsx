@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building, Search, Plus, Edit3, Trash2, User, Users, Home, AlertTriangle, X } from "lucide-react";
+import { Building, Search, Plus, Edit3, Trash2, User, Users, Home, X } from "lucide-react";
 import { 
     getAdminApartments, 
     createApartment, 
@@ -252,7 +252,7 @@ function ApartmentManagement({ isOpen, onClose, token }: ApartmentManagementProp
                         </div>
                         <button
                             onClick={onClose}
-                            className="text-white hover:text-blue-200 transition-colors"
+                            className="text-white hover:text-blue-200 transition-colors cursor-pointer"
                         >
                             <X className="w-6 h-6" />
                         </button>
@@ -304,7 +304,7 @@ function ApartmentManagement({ isOpen, onClose, token }: ApartmentManagementProp
                         <button
                             onClick={openCreateModal}
                             disabled={loading}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                             <Plus className="w-5 h-5" />
                             Crear Apartamento
@@ -389,7 +389,7 @@ function ApartmentManagement({ isOpen, onClose, token }: ApartmentManagementProp
                                         <button
                                             onClick={() => openEditModal(apartment)}
                                             disabled={processing}
-                                            className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                                            className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 text-sm cursor-pointer"
                                         >
                                             <Edit3 className="w-4 h-4" />
                                             Editar
@@ -397,7 +397,7 @@ function ApartmentManagement({ isOpen, onClose, token }: ApartmentManagementProp
                                         <button
                                             onClick={() => handleDeleteApartment(apartment)}
                                             disabled={processing}
-                                            className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                                            className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 text-sm cursor-pointer"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             Eliminar
@@ -515,7 +515,7 @@ function ApartmentManagement({ isOpen, onClose, token }: ApartmentManagementProp
                                         <button
                                             type="submit"
                                             disabled={processing}
-                                            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             {processing ? "Creando..." : "Crear Apartamento"}
                                         </button>
@@ -523,7 +523,7 @@ function ApartmentManagement({ isOpen, onClose, token }: ApartmentManagementProp
                                             type="button"
                                             onClick={() => setShowCreateModal(false)}
                                             disabled={processing}
-                                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+                                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             Cancelar
                                         </button>
@@ -641,7 +641,7 @@ function ApartmentManagement({ isOpen, onClose, token }: ApartmentManagementProp
                                         <button
                                             type="submit"
                                             disabled={processing}
-                                            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             {processing ? "Actualizando..." : "Actualizar"}
                                         </button>
@@ -649,7 +649,7 @@ function ApartmentManagement({ isOpen, onClose, token }: ApartmentManagementProp
                                             type="button"
                                             onClick={() => setShowEditModal(false)}
                                             disabled={processing}
-                                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+                                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             Cancelar
                                         </button>

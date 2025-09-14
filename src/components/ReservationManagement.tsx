@@ -119,7 +119,7 @@ function ReservationManagement({ isOpen, onClose, token }: ReservationManagement
                         </div>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
                         >
                             ✕
                         </button>
@@ -194,7 +194,7 @@ function ReservationManagement({ isOpen, onClose, token }: ReservationManagement
                                                                     <span>📧</span>
                                                                     <span>{reservation.user?.email || 'Email desconocido'}</span>
                                                                 </div>
-                                                                {reservation.user.apartment && (
+                                                                {reservation.user && reservation.user.apartment && (
                                                                     <div className="flex items-center gap-1">
                                                                         <Building className="w-4 h-4" />
                                                                         <span>Apt: {reservation.user.apartment.unit}</span>

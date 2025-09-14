@@ -224,7 +224,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                         </div>
                         <button
                             onClick={onClose}
-                            className="text-white hover:text-cyan-200 transition-colors"
+                            className="text-white hover:text-cyan-200 transition-colors cursor-pointer"
                         >
                             <X className="w-6 h-6" />
                         </button>
@@ -252,7 +252,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                         <button
                             onClick={openCreateModal}
                             disabled={loading}
-                            className="flex items-center gap-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50"
+                            className="flex items-center gap-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                             <Plus className="w-5 h-5" />
                             Crear Amenity
@@ -318,7 +318,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                                         <button
                                             onClick={() => handleViewReservations(amenity)}
                                             disabled={processing}
-                                            className="flex items-center gap-1 px-3 py-2 text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                                            className="flex items-center gap-1 px-3 py-2 text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors disabled:opacity-50 text-sm cursor-pointer"
                                         >
                                             <Eye className="w-4 h-4" />
                                             Reservas
@@ -326,7 +326,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                                         <button
                                             onClick={() => openEditModal(amenity)}
                                             disabled={processing}
-                                            className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                                            className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 text-sm cursor-pointer"
                                         >
                                             <Edit3 className="w-4 h-4" />
                                             Editar
@@ -334,7 +334,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                                         <button
                                             onClick={() => handleDeleteAmenity(amenity)}
                                             disabled={processing}
-                                            className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                                            className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 text-sm cursor-pointer"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             Eliminar
@@ -411,7 +411,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                                         <button
                                             type="submit"
                                             disabled={processing}
-                                            className="flex-1 bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50"
+                                            className="flex-1 bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             {processing ? "Creando..." : "Crear Amenity"}
                                         </button>
@@ -419,7 +419,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                                             type="button"
                                             onClick={() => setShowCreateModal(false)}
                                             disabled={processing}
-                                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+                                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             Cancelar
                                         </button>
@@ -491,7 +491,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                                         <button
                                             type="submit"
                                             disabled={processing}
-                                            className="flex-1 bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50"
+                                            className="flex-1 bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             {processing ? "Actualizando..." : "Actualizar"}
                                         </button>
@@ -499,7 +499,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                                             type="button"
                                             onClick={() => setShowEditModal(false)}
                                             disabled={processing}
-                                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+                                            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
                                         >
                                             Cancelar
                                         </button>
@@ -532,7 +532,7 @@ function AmenityManagement({ isOpen, onClose, token }: AmenityManagementProps) {
                                         </div>
                                         <button
                                             onClick={() => setShowReservationsModal(false)}
-                                            className="text-white hover:text-cyan-200 transition-colors"
+                                            className="text-white hover:text-cyan-200 transition-colors cursor-pointer"
                                         >
                                             <X className="w-6 h-6" />
                                         </button>
