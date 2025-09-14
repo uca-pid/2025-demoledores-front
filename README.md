@@ -186,14 +186,44 @@ npm run build
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## 🆘 Support & Troubleshooting
+
+### Common CI/CD Issues
+
+#### Tests fail in GitHub Actions but pass locally
+- **Cause**: Environment differences between local and CI
+- **Solution**: Use `npm run test:ci` which includes Node.js polyfills
+
+#### webidl-conversions or whatwg-url errors
+- **Cause**: Missing Node.js polyfills for web APIs
+- **Solution**: Our setup includes automatic polyfills in `src/__tests__/setup.ts`
+
+#### MSW (Mock Service Worker) issues in CI
+- **Cause**: Missing fetch polyfills in Node.js environment  
+- **Solution**: We use `undici` as a fetch polyfill for CI environments
+
+### Development Issues
 
 If you encounter any issues or have questions:
 
 1. Check the [GitHub Issues](https://github.com/USERNAME/REPOSITORY/issues)
 2. Review the test output for specific error messages
-3. Ensure all dependencies are properly installed
+3. Ensure all dependencies are properly installed: `npm ci`
 4. Verify Node.js version compatibility (18.x or 20.x)
+5. Clear node_modules and reinstall: `rm -rf node_modules package-lock.json && npm install`
+
+### Testing Commands
+
+```bash
+# Local development testing
+npm test                    # Watch mode
+npm run test:run           # Single run
+npm run test:coverage      # With coverage
+npm run test:ui           # UI interface
+
+# CI-compatible testing
+npm run test:ci           # Optimized for CI environments
+```
 
 ---
 

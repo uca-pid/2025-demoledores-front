@@ -3,6 +3,32 @@ import { beforeAll, afterEach, afterAll, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { server } from './utils/mocks/server';
 
+// Polyfill for TextEncoder/TextDecoder in Node.js environments
+if (typeof global.TextEncoder === 'undefined') {
+  const { TextEncoder, TextDecoder } = require('util');
+  global.TextEncoder = TextEncoder;
+  global.TextDecoder = TextDecoder;
+}
+
+// Polyfill for URL if not available
+if (typeof global.URL === 'undefined') {
+  global.URL = require('url').URL;
+}
+
+// Polyfill for URLSearchParams if not available
+if (typeof global.URLSearchParams === 'undefined') {
+  global.URLSearchParams = require('url').URLSearchParams;
+}
+
+// Polyfill for fetch using undici in Node.js environments
+if (typeof global.fetch === 'undefined') {
+  const { fetch, Headers, Request, Response } = require('undici');
+  global.fetch = fetch;
+  global.Headers = Headers;
+  global.Request = Request;
+  global.Response = Response;
+}
+
 // Remove router mock from global setup - it's causing issues
 // Mocks will be handled in individual test files or test-utils
 
