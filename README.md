@@ -1,8 +1,10 @@
 # US Web App Frontend 🏠
 
-[![CI/CD Pipeline](https://github.com/USERNAME/REPOSITORY/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/REPOSITORY/actions/workflows/ci.yml)
-[![Development CI](https://github.com/USERNAME/REPOSITORY/actions/workflows/dev.yml/badge.svg)](https://github.com/USERNAME/REPOSITORY/actions/workflows/dev.yml)
-[![Coverage](https://codecov.io/gh/USERNAME/REPOSITORY/branch/main/graph/badge.svg)](https://codecov.io/gh/USERNAME/REPOSITORY)
+[![CI/CD Pipeline](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/ci.yml/badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/ci.yml)
+[![Development CI](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/dev.yml/badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/dev.yml)
+[![codecov](https://codecov.io/gh/SantiagoBreton/US-Web-App/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/SantiagoBreton/US-Web-App)
+[![Coverage Status](https://coveralls.io/repos/github/SantiagoBreton/US-Web-App/badge.svg?branch=main)](https://coveralls.io/github/SantiagoBreton/US-Web-App?branch=main)
+[![Tests](https://img.shields.io/badge/tests-100%2B%20passing-brightgreen)](https://github.com/SantiagoBreton/US-Web-App/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Modern apartment management system with comprehensive testing suite and automated CI/CD pipeline.

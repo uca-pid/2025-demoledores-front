@@ -33,6 +33,35 @@ jobs:
       id: test
       run: npm run test:ci-safe
 
+    - name: Generate Coverage Summary
+      if: always()
+      run: |
+        if [ -f "coverage/coverage-summary.json" ]; then
+          echo "Coverage files found, generating summary..."
+          node -e "
+          const fs = require('fs');
+          try {
+            const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+            const total = coverage.total;
+            console.log('📊 Coverage Summary:');
+            console.log('Lines: ' + total.lines.pct + '%');
+            console.log('Functions: ' + total.functions.pct + '%');
+            console.log('Branches: ' + total.branches.pct + '%');
+            console.log('Statements: ' + total.statements.pct + '%');
+            
+            // Set GitHub Actions output
+            console.log('::set-output name=lines::' + total.lines.pct);
+            console.log('::set-output name=functions::' + total.functions.pct);
+            console.log('::set-output name=branches::' + total.branches.pct);
+            console.log('::set-output name=statements::' + total.statements.pct);
+          } catch (error) {
+            console.log('Could not parse coverage summary:', error.message);
+          }
+          "
+        else
+          echo "No coverage files found"
+        fi
+
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
       if: always()
