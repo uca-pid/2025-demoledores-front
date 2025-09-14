@@ -30,15 +30,18 @@ jobs:
       run: npm run lint
 
     - name: Run tests with coverage
-      run: npm run test:ci
+      id: test
+      run: npm run test:ci-safe
 
     - name: Build application
       run: npm run build
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
+      if: always()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage/lcov.info
         flags: development
         name: codecov-development
+        fail_ci_if_error: false

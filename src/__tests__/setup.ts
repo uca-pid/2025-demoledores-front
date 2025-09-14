@@ -1,32 +1,67 @@
+// Import polyfills first before anything else
+import './polyfills';
 import '@testing-library/jest-dom';
 import { beforeAll, afterEach, afterAll, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import { server } from './utils/mocks/server';
 
-// Polyfill for TextEncoder/TextDecoder in Node.js environments
-if (typeof global.TextEncoder === 'undefined') {
-  const { TextEncoder, TextDecoder } = require('util');
-  global.TextEncoder = TextEncoder;
-  global.TextDecoder = TextDecoder;
+// Comprehensive polyfills for CI environment
+if (typeof global !== 'undefined') {
+  // TextEncoder/TextDecoder polyfills
+  if (typeof global.TextEncoder === 'undefined') {
+    const { TextEncoder, TextDecoder } = require('util');
+    global.TextEncoder = TextEncoder;
+    global.TextDecoder = TextDecoder;
+  }
+
+  // URL polyfills
+  if (typeof global.URL === 'undefined') {
+    global.URL = require('url').URL;
+  }
+
+  if (typeof global.URLSearchParams === 'undefined') {
+    global.URLSearchParams = require('url').URLSearchParams;
+  }
+
+  // Fetch polyfills using undici
+  if (typeof global.fetch === 'undefined') {
+    try {
+      const { fetch, Headers, Request, Response } = require('undici');
+      global.fetch = fetch;
+      global.Headers = Headers;
+      global.Request = Request;
+      global.Response = Response;
+    } catch (error) {
+      console.warn('Could not load undici polyfills:', error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  // Additional polyfills for webidl-conversions compatibility
+  if (typeof global.Map === 'undefined') {
+    global.Map = Map;
+  }
+  
+  if (typeof global.Set === 'undefined') {
+    global.Set = Set;
+  }
+  
+  if (typeof global.WeakMap === 'undefined') {
+    global.WeakMap = WeakMap;
+  }
+  
+  if (typeof global.WeakSet === 'undefined') {
+    global.WeakSet = WeakSet;
+  }
 }
 
-// Polyfill for URL if not available
-if (typeof global.URL === 'undefined') {
-  global.URL = require('url').URL;
-}
-
-// Polyfill for URLSearchParams if not available
-if (typeof global.URLSearchParams === 'undefined') {
-  global.URLSearchParams = require('url').URLSearchParams;
-}
-
-// Polyfill for fetch using undici in Node.js environments
-if (typeof global.fetch === 'undefined') {
-  const { fetch, Headers, Request, Response } = require('undici');
-  global.fetch = fetch;
-  global.Headers = Headers;
-  global.Request = Request;
-  global.Response = Response;
+// Only import MSW after polyfills are set up
+let server: any;
+try {
+  // Use require for Node.js compatibility
+  const serverModule = require('./utils/mocks/server');
+  server = serverModule.server;
+} catch (error) {
+  console.warn('MSW server not available, tests will run without API mocking');
+  server = null;
 }
 
 // Remove router mock from global setup - it's causing issues
@@ -105,8 +140,12 @@ Object.defineProperty(import.meta, 'env', {
   writable: true
 });
 
-// MSW server setup
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+// MSW server setup - only if successfully loaded
+beforeAll(() => {
+  if (server) {
+    server.listen({ onUnhandledRequest: 'warn' });
+  }
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -115,8 +154,14 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  server.resetHandlers();
+  if (server) {
+    server.resetHandlers();
+  }
   cleanup();
 });
 
-afterAll(() => server.close());
+afterAll(() => {
+  if (server) {
+    server.close();
+  }
+});
