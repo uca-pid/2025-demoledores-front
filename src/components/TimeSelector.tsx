@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import type { ReservationData, Amenity } from "../types";
 import { LoadingButton } from "./LoadingSpinner";
-import { Calendar, Clock, Users, ChevronDown } from "lucide-react";
+import { Calendar, Users } from "lucide-react";
+import ModernDatePicker from "./ModernDatePicker";
+import ModernTimePicker from "./ModernTimePicker";
 
 interface TimeSelectorProps {
     selectedSpace: string;
@@ -17,64 +19,6 @@ interface TimeSelectorProps {
     isReserving?: boolean;
     // New prop to get real-time reservation count
     getCurrentReservationCount?: (amenityName: string, date: string, timeSlot: string) => Promise<number>;
-}
-
-// Generate time slots in 30-minute intervals
-function generateTimeSlots() {
-    const slots = [];
-    for (let hour = 6; hour <= 22; hour++) {
-        slots.push(`${hour.toString().padStart(2, '0')}:00`);
-        if (hour < 22) { // Don't add :30 for the last hour to avoid going past 22:30
-            slots.push(`${hour.toString().padStart(2, '0')}:30`);
-        }
-    }
-    return slots;
-}
-
-// Generate valid duration options based on start time and max duration
-function generateDurationOptions(maxDuration: number, startTime?: string) {
-    const durations = [];
-    
-    // If no start time, show all possible durations up to max
-    if (!startTime) {
-        for (let duration = 30; duration <= maxDuration; duration += 30) {
-            const hours = Math.floor(duration / 60);
-            const minutes = duration % 60;
-            const label = hours > 0 
-                ? (minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`)
-                : `${minutes}min`;
-            durations.push({ value: duration, label });
-        }
-        return durations;
-    }
-
-    // Calculate max possible duration based on start time (can't go past 22:30)
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const startTimeMinutes = startHour * 60 + startMinute;
-    const maxEndTime = 22 * 60 + 30; // 22:30 in minutes
-    const maxPossibleDuration = maxEndTime - startTimeMinutes;
-    
-    // Use the smaller of maxDuration and maxPossibleDuration
-    const effectiveMaxDuration = Math.min(maxDuration, maxPossibleDuration);
-    
-    for (let duration = 30; duration <= effectiveMaxDuration; duration += 30) {
-        const hours = Math.floor(duration / 60);
-        const minutes = duration % 60;
-        const label = hours > 0 
-            ? (minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`)
-            : `${minutes}min`;
-        durations.push({ value: duration, label });
-    }
-    return durations;
-}
-
-// Calculate end time based on start time and duration
-function calculateEndTime(startTime: string, durationMinutes: number): string {
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const totalMinutes = startHour * 60 + startMinute + durationMinutes;
-    const endHour = Math.floor(totalMinutes / 60);
-    const endMinute = totalMinutes % 60;
-    return `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
 }
 
 function TimeSelector({
@@ -95,8 +39,6 @@ function TimeSelector({
     
     const selectedAmenity = amenities.find(a => a.name === selectedSpace);
     const maxDuration = selectedAmenity?.maxDuration || 60;
-    
-    const timeSlots = generateTimeSlots();
     
     // Update reservation count when date, time, or space changes
     useEffect(() => {
@@ -119,55 +61,6 @@ function TimeSelector({
 
         updateReservationCount();
     }, [selectedSpace, selectedDate, selectedTime, getCurrentReservationCount]);
-    
-    // Parse current selected time
-    const [currentStart, currentEnd] = selectedTime.split(" - ");
-    const currentDuration = currentStart && currentEnd ? (() => {
-        const [sh, sm] = currentStart.split(':').map(Number);
-        const [eh, em] = currentEnd.split(':').map(Number);
-        return (eh * 60 + em) - (sh * 60 + sm);
-    })() : 30;
-
-    const durationOptions = generateDurationOptions(maxDuration, currentStart);
-
-    const handleStartTimeChange = (newStart: string) => {
-        // Keep the same duration, calculate new end time
-        const newEnd = calculateEndTime(newStart, currentDuration);
-        
-        // Validate end time doesn't go past 22:30
-        const [endHour, endMinute] = newEnd.split(':').map(Number);
-        if (endHour > 22 || (endHour === 22 && endMinute > 30)) {
-            // If it would exceed 22:30, adjust the duration to fit
-            const [startHour, startMinute] = newStart.split(':').map(Number);
-            const maxEndTime = 22 * 60 + 30; // 22:30 in minutes
-            const startTimeMinutes = startHour * 60 + startMinute;
-            const maxDurationForThisStart = maxEndTime - startTimeMinutes;
-            
-            // Round down to nearest 30-minute interval
-            const adjustedDuration = Math.floor(maxDurationForThisStart / 30) * 30;
-            
-            if (adjustedDuration >= 30) {
-                const adjustedEnd = calculateEndTime(newStart, adjustedDuration);
-                onTimeChange(`${newStart} - ${adjustedEnd}`);
-            }
-            return;
-        }
-        
-        onTimeChange(`${newStart} - ${newEnd}`);
-    };
-
-    const handleDurationChange = (newDuration: number) => {
-        // Keep the same start time, calculate new end time
-        const newEnd = calculateEndTime(currentStart, newDuration);
-        
-        // Validate end time doesn't go past 22:30
-        const [endHour, endMinute] = newEnd.split(':').map(Number);
-        if (endHour > 22 || (endHour === 22 && endMinute > 30)) {
-            return; // Don't allow this duration
-        }
-        
-        onTimeChange(`${currentStart} - ${newEnd}`);
-    };
 
     return (
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 h-full">
@@ -179,82 +72,21 @@ function TimeSelector({
             </div>
 
             <div className="space-y-6">
-                {/* Fecha */}
-                <div className="group">
-                    <label className="flex items-center gap-2 text-gray-700 font-semibold text-sm uppercase tracking-wide mb-3">
-                        <Calendar className="w-4 h-4 text-gray-600" />
-                        Fecha
-                    </label>
-                    <div className="relative">
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => onDateChange(e.target.value)}
-                            className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-gray-600 focus:ring-4 focus:ring-gray-100 transition-all duration-300 text-gray-700 font-medium shadow-sm hover:shadow-md"
-                        />
-                    </div>
-                </div>
+                {/* Modern Date Picker */}
+                <ModernDatePicker
+                    selectedDate={selectedDate}
+                    onDateChange={onDateChange}
+                    label="Fecha de Reserva"
+                    minDate={new Date().toISOString().split('T')[0]} // Can't select past dates
+                />
 
-                {/* Hora de inicio */}
-                <div className="group">
-                    <label className="flex items-center gap-2 text-gray-700 font-semibold text-sm uppercase tracking-wide mb-3">
-                        <Clock className="w-4 h-4 text-gray-600" />
-                        Hora de Inicio
-                    </label>
-                    <div className="relative">
-                        <select
-                            value={currentStart || ""}
-                            onChange={(e) => handleStartTimeChange(e.target.value)}
-                            className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-gray-600 focus:ring-4 focus:ring-gray-100 transition-all duration-300 text-gray-700 font-medium shadow-sm hover:shadow-md appearance-none bg-white cursor-pointer"
-                        >
-                            <option value="" disabled className="text-gray-400">
-                                Selecciona una hora
-                            </option>
-                            {timeSlots.map(slot => (
-                                <option key={slot} value={slot} className="text-gray-700">
-                                    {slot}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                    </div>
-                </div>
-
-                {/* Duración */}
-                <div className="group">
-                    <label className="flex items-center gap-2 text-gray-700 font-semibold text-sm uppercase tracking-wide mb-3">
-                        <Clock className="w-4 h-4 text-gray-600" />
-                        Duración
-                    </label>
-                    <div className="relative">
-                        <select
-                            value={currentDuration}
-                            onChange={(e) => handleDurationChange(Number(e.target.value))}
-                            className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-gray-600 focus:ring-4 focus:ring-gray-100 transition-all duration-300 text-gray-700 font-medium shadow-sm hover:shadow-md appearance-none bg-white cursor-pointer disabled:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
-                            disabled={!currentStart}
-                        >
-                            {durationOptions.map(option => (
-                                <option key={option.value} value={option.value} className="text-gray-700">
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                    </div>
-                </div>
-
-                {/* Tiempo seleccionado */}
-                {currentStart && currentEnd && (
-                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-300 p-4 rounded-xl">
-                        <div className="flex items-center gap-2 text-gray-700">
-                            <Clock className="w-4 h-4" />
-                            <span className="font-semibold text-sm">TIEMPO SELECCIONADO</span>
-                        </div>
-                        <p className="text-xl font-bold text-gray-800 mt-1">
-                            {currentStart} - {currentEnd}
-                        </p>
-                    </div>
-                )}
+                {/* Modern Time Picker */}
+                <ModernTimePicker
+                    selectedTime={selectedTime}
+                    onTimeChange={onTimeChange}
+                    maxDuration={maxDuration}
+                    label="Horario de Reserva"
+                />
 
                 {/* Error */}
                 {timeError && (

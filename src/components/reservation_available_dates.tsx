@@ -205,7 +205,7 @@ export default function AvailabilityTimelineViewer({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="group relative px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 flex items-center gap-3 font-medium transform hover:scale-105"
+        className="group relative px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 flex items-center gap-3 font-medium transform hover:scale-105 cursor-pointer"
       >
         <div className="relative">
           <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
@@ -224,7 +224,7 @@ export default function AvailabilityTimelineViewer({
               </h2>
               <button
                 onClick={() => setOpen(false)}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 ✕
               </button>
@@ -234,7 +234,7 @@ export default function AvailabilityTimelineViewer({
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => setWeekOffset(weekOffset - 1)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Semana anterior
@@ -254,7 +254,7 @@ export default function AvailabilityTimelineViewer({
 
               <button
                 onClick={() => setWeekOffset(weekOffset + 1)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
               >
                 Semana siguiente
                 <ChevronRight className="w-4 h-4" />
@@ -433,7 +433,7 @@ export default function AvailabilityTimelineViewer({
               </h3>
               <button
                 onClick={() => setSelectedSlot(null)}
-                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 ✕
               </button>

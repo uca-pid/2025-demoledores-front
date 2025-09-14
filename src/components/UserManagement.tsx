@@ -129,7 +129,7 @@ function UserManagement({ isOpen, onClose, token }: UserManagementProps) {
                         </div>
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
                         >
                             ✕
                         </button>
@@ -197,7 +197,7 @@ function UserManagement({ isOpen, onClose, token }: UserManagementProps) {
                                                     value={user.role}
                                                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
                                                     disabled={updatingUserId === user.id}
-                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 cursor-pointer"
                                                 >
                                                     <option value="tenant">Inquilino</option>
                                                     <option value="owner">Propietario</option>
