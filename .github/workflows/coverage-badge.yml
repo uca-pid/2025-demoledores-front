@@ -23,7 +23,7 @@ jobs:
       run: npm ci
 
     - name: Run tests with coverage
-      run: npm run test:coverage
+      run: npm run test:ci-safe
 
     - name: Extract coverage percentage
       id: coverage

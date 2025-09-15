@@ -32,7 +32,7 @@ jobs:
       continue-on-error: true
       
     - name: 🧪 Run tests with coverage
-      run: npm run test:coverage
+      run: npm run test:ci-safe
       
     - name: 📊 Generate coverage summary  
       id: coverage
