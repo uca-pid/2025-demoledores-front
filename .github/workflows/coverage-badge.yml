@@ -34,24 +34,41 @@ jobs:
           exit 1
         fi
         
-        # Extract coverage percentage from coverage summary with better error handling
-        COVERAGE=$(jq -r '.total.lines.pct' coverage/coverage-summary.json 2>/dev/null || echo "0")
+        # Extract coverage percentage using jq (more reliable)
+        if command -v jq >/dev/null 2>&1; then
+          COVERAGE=$(jq -r '.total.lines.pct // 0' coverage/coverage-summary.json)
+        else
+          # Fallback method without jq
+          COVERAGE=$(node -e "
+            const fs = require('fs');
+            try {
+              const data = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+              console.log(data.total.lines.pct || 0);
+            } catch (e) {
+              console.log(0);
+            }
+          ")
+        fi
         
-        # Fallback to grep method if jq fails
-        if [ "$COVERAGE" = "0" ] || [ "$COVERAGE" = "null" ]; then
-          COVERAGE=$(grep -o '"lines":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2 || echo "0")
+        # Ensure COVERAGE is a valid number
+        if ! [[ "$COVERAGE" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+          COVERAGE="0"
         fi
         
         echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
         
-        # Determine badge color based on coverage percentage using awk (more portable)
-        COLOR=$(awk -v cov="$COVERAGE" 'BEGIN {
-          if (cov >= 90) print "brightgreen"
-          else if (cov >= 80) print "green" 
-          else if (cov >= 70) print "yellow"
-          else if (cov >= 60) print "orange"
-          else print "red"
-        }')
+        # Determine badge color based on coverage percentage
+        if [ "$(echo "$COVERAGE >= 90" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+          COLOR="brightgreen"
+        elif [ "$(echo "$COVERAGE >= 80" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+          COLOR="green"
+        elif [ "$(echo "$COVERAGE >= 70" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+          COLOR="yellow"
+        elif [ "$(echo "$COVERAGE >= 60" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+          COLOR="orange"
+        else
+          COLOR="red"
+        fi
         
         echo "color=$COLOR" >> $GITHUB_OUTPUT
         echo "Coverage: $COVERAGE%"

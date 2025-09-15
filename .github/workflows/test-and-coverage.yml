@@ -37,29 +37,37 @@ jobs:
     - name: 📊 Generate coverage summary  
       id: coverage
       run: |
-        # Extract coverage data
-        LINES=$(grep -o '"lines":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2)
-        FUNCTIONS=$(grep -o '"functions":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2)
-        BRANCHES=$(grep -o '"branches":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2)
-        STATEMENTS=$(grep -o '"statements":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2)
-        
-        echo "lines=$LINES" >> $GITHUB_OUTPUT
-        echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT  
-        echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
-        echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
-        
-        # Determine color for badge
-        if (( $(echo "$LINES >= 90" | bc -l) )); then
-          echo "color=brightgreen" >> $GITHUB_OUTPUT
-        elif (( $(echo "$LINES >= 80" | bc -l) )); then
-          echo "color=green" >> $GITHUB_OUTPUT
-        elif (( $(echo "$LINES >= 70" | bc -l) )); then
-          echo "color=yellow" >> $GITHUB_OUTPUT
-        elif (( $(echo "$LINES >= 60" | bc -l) )); then
-          echo "color=orange" >> $GITHUB_OUTPUT
-        else
-          echo "color=red" >> $GITHUB_OUTPUT
-        fi
+        # Extract coverage data using Node.js for reliability
+        node -e "
+          const fs = require('fs');
+          try {
+            const data = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+            const lines = data.total.lines.pct || 0;
+            const functions = data.total.functions.pct || 0;
+            const branches = data.total.branches.pct || 0;
+            const statements = data.total.statements.pct || 0;
+            
+            console.log('lines=' + lines);
+            console.log('functions=' + functions);
+            console.log('branches=' + branches);
+            console.log('statements=' + statements);
+            
+            // Determine color based on lines coverage
+            let color = 'red';
+            if (lines >= 90) color = 'brightgreen';
+            else if (lines >= 80) color = 'green';
+            else if (lines >= 70) color = 'yellow';
+            else if (lines >= 60) color = 'orange';
+            
+            console.log('color=' + color);
+          } catch (e) {
+            console.log('lines=0');
+            console.log('functions=0');
+            console.log('branches=0');
+            console.log('statements=0');
+            console.log('color=red');
+          }
+        " >> $GITHUB_OUTPUT
       if: matrix.node-version == 20
       
     - name: 📊 Upload coverage to Codecov

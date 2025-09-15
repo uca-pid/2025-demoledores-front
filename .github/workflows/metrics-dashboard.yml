@@ -56,16 +56,22 @@ jobs:
     - name: 📊 Extract coverage metrics
       id: coverage
       run: |
-        # Extract detailed coverage
-        LINES=$(grep -o '"lines":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2)
-        FUNCTIONS=$(grep -o '"functions":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2)
-        BRANCHES=$(grep -o '"branches":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2)
-        STATEMENTS=$(grep -o '"statements":{"total":[0-9]*,"covered":[0-9]*,"skipped":[0-9]*,"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | cut -d':' -f2)
-        
-        echo "lines=$LINES" >> $GITHUB_OUTPUT
-        echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
-        echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
-        echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
+        # Extract detailed coverage using Node.js for reliability
+        node -e "
+          const fs = require('fs');
+          try {
+            const data = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+            console.log('lines=' + (data.total.lines.pct || 0));
+            console.log('functions=' + (data.total.functions.pct || 0));
+            console.log('branches=' + (data.total.branches.pct || 0));
+            console.log('statements=' + (data.total.statements.pct || 0));
+          } catch (e) {
+            console.log('lines=0');
+            console.log('functions=0');
+            console.log('branches=0');
+            console.log('statements=0');
+          }
+        " >> $GITHUB_OUTPUT
 
     - name: 🎯 Test metrics
       id: test_metrics
@@ -95,17 +101,34 @@ jobs:
         echo "## 📊 Test Coverage" >> $GITHUB_STEP_SUMMARY
         echo "| Type | Percentage | Status |" >> $GITHUB_STEP_SUMMARY
         echo "|------|------------|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| 📝 Lines | ${{ steps.coverage.outputs.lines }}% | $([ $(echo '${{ steps.coverage.outputs.lines }} >= 80' | bc -l) -eq 1 ] && echo '✅ Good' || echo '⚠️ Needs Improvement') |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🔧 Functions | ${{ steps.coverage.outputs.functions }}% | $([ $(echo '${{ steps.coverage.outputs.functions }} >= 80' | bc -l) -eq 1 ] && echo '✅ Good' || echo '⚠️ Needs Improvement') |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🌿 Branches | ${{ steps.coverage.outputs.branches }}% | $([ $(echo '${{ steps.coverage.outputs.branches }} >= 80' | bc -l) -eq 1 ] && echo '✅ Good' || echo '⚠️ Needs Improvement') |" >> $GITHUB_STEP_SUMMARY
-        echo "| 📄 Statements | ${{ steps.coverage.outputs.statements }}% | $([ $(echo '${{ steps.coverage.outputs.statements }} >= 80' | bc -l) -eq 1 ] && echo '✅ Good' || echo '⚠️ Needs Improvement') |" >> $GITHUB_STEP_SUMMARY
+        
+        # Use Node.js for reliable numeric comparisons
+        LINES_STATUS=$(node -e "console.log(${{ steps.coverage.outputs.lines }} >= 80 ? '✅ Good' : '⚠️ Needs Improvement')")
+        FUNCTIONS_STATUS=$(node -e "console.log(${{ steps.coverage.outputs.functions }} >= 80 ? '✅ Good' : '⚠️ Needs Improvement')")
+        BRANCHES_STATUS=$(node -e "console.log(${{ steps.coverage.outputs.branches }} >= 80 ? '✅ Good' : '⚠️ Needs Improvement')")
+        STATEMENTS_STATUS=$(node -e "console.log(${{ steps.coverage.outputs.statements }} >= 80 ? '✅ Good' : '⚠️ Needs Improvement')")
+        
+        echo "| 📝 Lines | ${{ steps.coverage.outputs.lines }}% | $LINES_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔧 Functions | ${{ steps.coverage.outputs.functions }}% | $FUNCTIONS_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🌿 Branches | ${{ steps.coverage.outputs.branches }}% | $BRANCHES_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| 📄 Statements | ${{ steps.coverage.outputs.statements }}% | $STATEMENTS_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
         echo "| Metric | Count | Status |" >> $GITHUB_STEP_SUMMARY
         echo "|--------|-------|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| ✅ Passed | ${{ steps.test_metrics.outputs.passed }} | $([ ${{ steps.test_metrics.outputs.failed }} -eq 0 ] && echo '🎉 All Good' || echo '⚠️ Some Failed') |" >> $GITHUB_STEP_SUMMARY
-        echo "| ❌ Failed | ${{ steps.test_metrics.outputs.failed }} | $([ ${{ steps.test_metrics.outputs.failed }} -eq 0 ] && echo '✅ None' || echo '🔴 Need Fixes') |" >> $GITHUB_STEP_SUMMARY
+        
+        # Use simple shell comparisons for test results
+        if [ "${{ steps.test_metrics.outputs.failed }}" = "0" ]; then
+          TEST_STATUS="🎉 All Good"
+          FAILED_STATUS="✅ None"
+        else
+          TEST_STATUS="⚠️ Some Failed"
+          FAILED_STATUS="🔴 Need Fixes"
+        fi
+        
+        echo "| ✅ Passed | ${{ steps.test_metrics.outputs.passed }} | $TEST_STATUS |" >> $GITHUB_STEP_SUMMARY
+        echo "| ❌ Failed | ${{ steps.test_metrics.outputs.failed }} | $FAILED_STATUS |" >> $GITHUB_STEP_SUMMARY
         echo "| ⏭️ Skipped | ${{ steps.test_metrics.outputs.skipped }} | - |" >> $GITHUB_STEP_SUMMARY
         echo "| 📊 Total | ${{ steps.test_metrics.outputs.total }} | - |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -122,10 +145,17 @@ jobs:
         
         echo "## 🏷️ Badges" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "![Lines Coverage](https://img.shields.io/badge/lines-${{ steps.coverage.outputs.lines }}%25-$([ $(echo '${{ steps.coverage.outputs.lines }} >= 80' | bc -l) -eq 1 ] && echo 'green' || echo 'orange'))" >> $GITHUB_STEP_SUMMARY
-        echo "![Functions Coverage](https://img.shields.io/badge/functions-${{ steps.coverage.outputs.functions }}%25-$([ $(echo '${{ steps.coverage.outputs.functions }} >= 80' | bc -l) -eq 1 ] && echo 'green' || echo 'orange'))" >> $GITHUB_STEP_SUMMARY
-        echo "![Branches Coverage](https://img.shields.io/badge/branches-${{ steps.coverage.outputs.branches }}%25-$([ $(echo '${{ steps.coverage.outputs.branches }} >= 80' | bc -l) -eq 1 ] && echo 'green' || echo 'orange'))" >> $GITHUB_STEP_SUMMARY
-        echo "![Tests](https://img.shields.io/badge/tests-${{ steps.test_metrics.outputs.passed }}%20passed-$([ ${{ steps.test_metrics.outputs.failed }} -eq 0 ] && echo 'green' || echo 'red'))" >> $GITHUB_STEP_SUMMARY
+        
+        # Generate badge colors using Node.js
+        LINES_COLOR=$(node -e "console.log(${{ steps.coverage.outputs.lines }} >= 80 ? 'green' : 'orange')")
+        FUNCTIONS_COLOR=$(node -e "console.log(${{ steps.coverage.outputs.functions }} >= 80 ? 'green' : 'orange')")
+        BRANCHES_COLOR=$(node -e "console.log(${{ steps.coverage.outputs.branches }} >= 80 ? 'green' : 'orange')")
+        TESTS_COLOR=$(node -e "console.log(${{ steps.test_metrics.outputs.failed }} == 0 ? 'green' : 'red')")
+        
+        echo "![Lines Coverage](https://img.shields.io/badge/lines-${{ steps.coverage.outputs.lines }}%25-$LINES_COLOR)" >> $GITHUB_STEP_SUMMARY
+        echo "![Functions Coverage](https://img.shields.io/badge/functions-${{ steps.coverage.outputs.functions }}%25-$FUNCTIONS_COLOR)" >> $GITHUB_STEP_SUMMARY
+        echo "![Branches Coverage](https://img.shields.io/badge/branches-${{ steps.coverage.outputs.branches }}%25-$BRANCHES_COLOR)" >> $GITHUB_STEP_SUMMARY
+        echo "![Tests](https://img.shields.io/badge/tests-${{ steps.test_metrics.outputs.passed }}%20passed-$TESTS_COLOR)" >> $GITHUB_STEP_SUMMARY
         echo "![Components](https://img.shields.io/badge/components-${{ steps.quality.outputs.components }}-blue)" >> $GITHUB_STEP_SUMMARY
         echo "![LOC](https://img.shields.io/badge/LOC-${{ steps.quality.outputs.loc }}-informational)" >> $GITHUB_STEP_SUMMARY
 

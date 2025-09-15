@@ -1,4 +1,14 @@
-# US Web App Frontend 🏠
+# US Web### 🧪 Test Coverage & Quality
+[![📊 Codecov](https://codecov.io/gh/SantiagoBreton/US-Web-App/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/SantiagoBreton/US-Web-App)
+[![📝 Coverage Badge](https://gist.github.com/SantiagoBreton/50121124d489e837ad2fb4a675441036/raw/coverage-badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/coverage-badge.yml)
+[![✅ Tests](https://img.shields.io/badge/tests-105%20passed-brightgreen)](https://github.com/SantiagoBreton/US-Web-App/actions)
+[![🎯 Quality Gate](https://img.shields.io/badge/quality%20gate-passing-success)](https://github.com/SantiagoBreton/US-Web-App/actions)
+
+### 📊 Current Coverage Metrics
+[![📝 Lines Coverage](https://img.shields.io/badge/lines-26.8%25-red)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/coverage-badge.yml)
+[![🔧 Functions Coverage](https://img.shields.io/badge/functions-50.99%25-orange)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/test-and-coverage.yml)
+[![🌿 Branches Coverage](https://img.shields.io/badge/branches-84.42%25-green)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/test-and-coverage.yml)
+[![📄 Statements Coverage](https://img.shields.io/badge/statements-26.8%25-orange)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/test-and-coverage.yml)Frontend 🏠
 
 ## 📊 Project Status & Metrics
 
@@ -52,10 +62,10 @@ Our GitHub Actions workflows provide comprehensive project metrics:
 ## 🧪 Testing & Quality Assurance
 
 ### 📊 Current Test Stats
-- **106+ Passing Tests** with comprehensive coverage
-- **Coverage Thresholds**: 80% minimum for branches, functions, lines, and statements  
+- **105 Passing Tests** with 5 skipped tests (110 total)
+- **Coverage Metrics**: 26.8% lines, 50.99% functions, 84.42% branches
 - **Test Types**: Unit tests, Integration tests, API tests, E2E workflows
-- **Modern Testing Stack**: Vitest + React Testing Library + MSW
+- **Modern Testing Stack**: Vitest + React Testing Library + Fetch Mocking
 - **Continuous Testing** with GitHub Actions
 - **Auto-Generated Reports**: Coverage visualization and metrics
 
