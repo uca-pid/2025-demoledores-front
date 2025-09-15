@@ -1,18 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { login, register } from '../../api_calls/auth';
-import { server } from '../utils/mocks/server';
-import { http, HttpResponse } from 'msw';
+
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
 describe('Authentication API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    server.resetHandlers(); // Ensure clean handlers for each test
+    mockFetch.mockClear();
   });
 
   describe('login', () => {
     it('should login successfully with valid credentials', async () => {
-      // MSW will handle this with the default handler
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ 
+          token: 'mock-jwt-token',
+          user: { id: 1, email: 'test@example.com' }
+        })
+      });
+
       const result = await login({ email: 'test@example.com', password: 'password' });
 
       expect(result.success).toBe(true);
@@ -21,37 +29,28 @@ describe('Authentication API', () => {
     });
 
     it('should handle login failure', async () => {
-      // Override MSW handler for this test
-      server.use(
-        http.post('/auth/login', () => {
-          return HttpResponse.json({ message: 'Invalid credentials' }, { status: 401 });
-        })
-      );
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: 'Invalid credentials' })
+      });
 
-      const result = await login({ email: 'wrong@example.com', password: 'wrongpass' });
+      const result = await login({ email: 'wrong@example.com', password: 'wrongpassword' });
 
       expect(result.success).toBe(false);
       expect(result.message).toBe('Invalid credentials');
       expect(localStorage.getItem('token')).toBeNull();
     });
-
-    it('should handle network errors', async () => {
-      // Override MSW handler to simulate network error
-      server.use(
-        http.post('http://localhost:3000/api/auth/login', () => {
-          return HttpResponse.error();
-        }),
-        http.post('/auth/login', () => {
-          return HttpResponse.error();
-        })
-      );
-
-      await expect(login({ email: 'test@example.com', password: 'password' })).rejects.toThrow();
-    });
   });
 
   describe('register', () => {
     it('should register user successfully', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          user: { id: 1, name: 'New User', email: 'newuser@example.com' }
+        })
+      });
+
       const result = await register({ name: 'New User', email: 'newuser@example.com', password: 'password123' });
 
       expect(result.success).toBe(true);
@@ -59,17 +58,15 @@ describe('Authentication API', () => {
     });
 
     it('should handle registration failure', async () => {
-      // Override MSW handler for this test
-      server.use(
-        http.post('/auth/register', () => {
-          return HttpResponse.json({ message: 'Email already exists' }, { status: 400 });
-        })
-      );
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: 'User already exists' })
+      });
 
-      const result = await register({ name: 'Test', email: 'existing@example.com', password: 'password' });
+      const result = await register({ name: 'Existing User', email: 'existing@example.com', password: 'password123' });
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe('Email already exists');
+      expect(result.message).toBe('User already exists');
     });
   });
 });

@@ -8,6 +8,14 @@ vi.mock('../../api_calls/auth', () => ({
   register: vi.fn()
 }));
 
+vi.mock('../../api_calls/get_apartments', () => ({
+  getApartments: vi.fn().mockResolvedValue([
+    { id: '1', unit: 'Apartment 1', floor: 1, occupant: null },
+    { id: '1A', unit: 'Apartment 1A', floor: 1, occupant: null },
+    { id: '2', unit: 'Apartment 2', floor: 2, occupant: null }
+  ])
+}));
+
 // Mock react-router-dom with importOriginal to preserve MemoryRouter
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async (importOriginal) => {
