@@ -8,7 +8,7 @@
 
 ### 🧪 Test Coverage & Quality
 [![📊 Codecov](https://codecov.io/gh/SantiagoBreton/US-Web-App/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/SantiagoBreton/US-Web-App)
-[![📝 Coverage Badge](https://gist.githubusercontent.com/SantiagoBreton/GIST_ID/raw/coverage-badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/coverage-badge.yml)
+[![📝 Coverage Badge](https://gist.github.com/SantiagoBreton/50121124d489e837ad2fb4a675441036/raw/coverage-badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/coverage-badge.yml)
 [![✅ Tests](https://img.shields.io/badge/tests-100%2B%20passing-brightgreen)](https://github.com/SantiagoBreton/US-Web-App/actions)
 [![🎯 Quality Gate](https://img.shields.io/badge/quality%20gate-passing-success)](https://github.com/SantiagoBreton/US-Web-App/actions)
 
