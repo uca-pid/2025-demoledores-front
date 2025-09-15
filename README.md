@@ -1,25 +1,70 @@
 # US Web App Frontend 🏠
 
-[![CI/CD Pipeline](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/ci.yml/badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/ci.yml)
-[![Development CI](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/dev.yml/badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/dev.yml)
-[![codecov](https://codecov.io/gh/SantiagoBreton/US-Web-App/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/SantiagoBreton/US-Web-App)
-[![Coverage Status](https://coveralls.io/repos/github/SantiagoBreton/US-Web-App/badge.svg?branch=main)](https://coveralls.io/github/SantiagoBreton/US-Web-App?branch=main)
-[![Tests](https://img.shields.io/badge/tests-100%2B%20passing-brightgreen)](https://github.com/SantiagoBreton/US-Web-App/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## 📊 Project Status & Metrics
 
-Modern apartment management system with comprehensive testing suite and automated CI/CD pipeline.
+[![🚀 CI/CD Pipeline](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/test-and-coverage.yml/badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/test-and-coverage.yml)
+[![📈 Metrics Dashboard](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/metrics-dashboard.yml/badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/metrics-dashboard.yml)
+[![🔧 Development CI](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/dev.yml/badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/dev.yml)
+
+### 🧪 Test Coverage & Quality
+[![📊 Codecov](https://codecov.io/gh/SantiagoBreton/US-Web-App/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/SantiagoBreton/US-Web-App)
+[![📝 Coverage Badge](https://gist.githubusercontent.com/SantiagoBreton/GIST_ID/raw/coverage-badge.svg)](https://github.com/SantiagoBreton/US-Web-App/actions/workflows/coverage-badge.yml)
+[![✅ Tests](https://img.shields.io/badge/tests-100%2B%20passing-brightgreen)](https://github.com/SantiagoBreton/US-Web-App/actions)
+[![🎯 Quality Gate](https://img.shields.io/badge/quality%20gate-passing-success)](https://github.com/SantiagoBreton/US-Web-App/actions)
+
+### 🛠️ Tech Stack & Tools
+[![⚛️ React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react)](https://reactjs.org/)
+[![📘 TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![⚡ Vite](https://img.shields.io/badge/Vite-5.4.10-646CFF?logo=vite)](https://vitejs.dev/)
+[![🎨 Tailwind](https://img.shields.io/badge/Tailwind-3.4.14-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
+[![🧪 Vitest](https://img.shields.io/badge/Vitest-2.1.5-6E9F18?logo=vitest)](https://vitest.dev/)
+[![📋 ESLint](https://img.shields.io/badge/ESLint-9.13.0-4B32C3?logo=eslint)](https://eslint.org/)
+
+### 📈 Project Metrics
+[![📄 License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![💻 Platform](https://img.shields.io/badge/Platform-Web-blue)](https://github.com/SantiagoBreton/US-Web-App)
+[![🔄 Maintained](https://img.shields.io/badge/Maintained-Yes-green)](https://github.com/SantiagoBreton/US-Web-App/graphs/commit-activity)
+
+Modern apartment management system with comprehensive testing suite, automated CI/CD pipeline, and advanced metrics visualization.
 
 ## 🎯 Project Overview
 
-A modern React TypeScript application for apartment management with user authentication, reservation system, and comprehensive testing coverage. Built with modern development practices including automated testing, continuous integration, and deployment.
+A modern React TypeScript application for apartment management with user authentication, reservation system, and comprehensive testing coverage. Built with modern development practices including automated testing, continuous integration, deployment, and real-time metrics dashboard.
+
+## 📊 Metrics & Analytics Dashboard
+
+### 📈 Live Metrics
+Our GitHub Actions workflows provide comprehensive project metrics:
+
+- **🧪 Test Coverage Dashboard**: Detailed coverage metrics with visual indicators
+- **📊 Code Quality Metrics**: Lines of code, component count, file statistics
+- **🚀 CI/CD Pipeline Status**: Build success rates and deployment metrics
+- **🔍 Test Results**: Pass/fail rates, test count trends, and performance data
+
+### 📋 Available Reports
+- **Test Coverage Report**: Detailed line-by-line coverage analysis
+- **Metrics Dashboard**: Daily automated project health reports
+- **Quality Gates**: Automated quality thresholds and checks
+- **Badge Generation**: Dynamic badges for README and documentation
+
+> 💡 **Pro Tip**: Check the [Actions tab](https://github.com/SantiagoBreton/US-Web-App/actions) to see the latest metrics dashboard and test coverage reports!
 
 ## 🧪 Testing & Quality Assurance
 
-- **106 Passing Tests** with comprehensive coverage
-- **Coverage Thresholds**: 80% minimum for branches, functions, lines, and statements
-- **Test Types**: Unit tests, Integration tests, API tests
+### 📊 Current Test Stats
+- **106+ Passing Tests** with comprehensive coverage
+- **Coverage Thresholds**: 80% minimum for branches, functions, lines, and statements  
+- **Test Types**: Unit tests, Integration tests, API tests, E2E workflows
 - **Modern Testing Stack**: Vitest + React Testing Library + MSW
 - **Continuous Testing** with GitHub Actions
+- **Auto-Generated Reports**: Coverage visualization and metrics
+
+### 🎯 Quality Standards
+- **Automated Code Coverage**: Real-time coverage tracking
+- **ESLint Integration**: Code quality enforcement
+- **TypeScript Strict Mode**: Type safety and reliability
+- **Performance Monitoring**: Build time and test execution metrics
+- **Dependency Security**: Automated vulnerability scanning
 
 ### Test Commands
 
@@ -35,6 +80,9 @@ npm run test:coverage
 
 # Run tests with UI interface
 npm run test:ui
+
+# Generate coverage badge
+npm run coverage:badge
 ```
 
 ## 🚀 Development
