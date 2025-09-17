@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { HiOutlineLockClosed } from 'react-icons/hi';
+import { HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 import { resetPassword } from '../api_calls/reset_password';
 
 function ResetPassword() {
@@ -9,6 +9,8 @@ function ResetPassword() {
   const [token, setToken] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string; token?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -121,16 +123,25 @@ function ResetPassword() {
             <div className="relative">
               <HiOutlineLockClosed className="absolute top-3 left-3 text-gray-500" size={20} />
               <input
-                type="password"
+                type={showNewPassword ? "text" : "password"}
                 placeholder="Nueva contraseña"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 onFocus={() => setShowPasswordRequirements(true)}
                 onBlur={() => setShowPasswordRequirements(false)}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all ${errors.password ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all ${errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                disabled={isLoading}
+                aria-label={showNewPassword ? "Ocultar nueva contraseña" : "Mostrar nueva contraseña"}
+              >
+                {showNewPassword ? <HiOutlineEyeOff size={20} /> : <HiOutlineEye size={20} />}
+              </button>
               {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
               
               {/* Password requirements - only shown when focused */}
@@ -163,14 +174,23 @@ function ResetPassword() {
             <div className="relative">
               <HiOutlineLockClosed className="absolute top-3 left-3 text-gray-500" size={20} />
               <input
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirmar nueva contraseña"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                   }`}
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                disabled={isLoading}
+                aria-label={showConfirmPassword ? "Ocultar confirmación de contraseña" : "Mostrar confirmación de contraseña"}
+              >
+                {showConfirmPassword ? <HiOutlineEyeOff size={20} /> : <HiOutlineEye size={20} />}
+              </button>
               {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
             </div>
 
