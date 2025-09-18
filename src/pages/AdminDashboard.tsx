@@ -22,6 +22,7 @@ import ReservationManagement from "../components/ReservationManagement";
 import ApartmentManagement from "../components/ApartmentManagement";
 import AmenityManagement from "../components/AmenityManagement";
 import { LoadingOverlay } from "../components/LoadingSpinner";
+import LogoutSuccessToast from "../components/LogoutSuccessToast";
 
 // API calls
 import { getAdminStats, type AdminStats as AdminStatsType } from "../api_calls/admin";
@@ -47,6 +48,7 @@ function AdminDashboard() {
     const [showReservationManagement, setShowReservationManagement] = useState(false);
     const [showApartmentManagement, setShowApartmentManagement] = useState(false);
     const [showAmenityManagement, setShowAmenityManagement] = useState(false);
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
     const [newName, setNewName] = useState("");
     
     // Loading states
@@ -101,6 +103,11 @@ function AdminDashboard() {
 
     const handleLogout = () => {
         setShowProfile(false);
+        setShowSuccessToast(true);
+    };
+
+    const handleLogoutComplete = () => {
+        setShowSuccessToast(false);
         localStorage.removeItem("token");
         window.location.href = "/login";
     };
@@ -141,12 +148,7 @@ function AdminDashboard() {
             await deleteUser(token);
             setShowDeleteConfirm(false);
             setShowProfile(false);
-            alert("Cuenta eliminada exitosamente");
-            
-            setTimeout(() => {
-                localStorage.removeItem("token");
-                window.location.href = "/login";
-            }, 1000);
+            setShowSuccessToast(true);
         } catch (err) {
             setShowDeleteConfirm(false);
             alert("Error al eliminar la cuenta: " + (err instanceof Error ? err.message : "Error desconocido"));
@@ -448,6 +450,12 @@ function AdminDashboard() {
                     token={token}
                 />
             )}
+
+            {/* Logout Success Toast */}
+            <LogoutSuccessToast
+                isVisible={showSuccessToast}
+                onComplete={handleLogoutComplete}
+            />
         </div>
     );
 }

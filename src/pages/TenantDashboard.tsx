@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { createReservation } from "../api_calls/post_reservation";
 
 import { getReservationsByAmenity } from "../api_calls/get_amenity_reservations";
@@ -21,6 +20,7 @@ import SpaceSelector from "../components/SpaceSelector";
 import TimeSelector from "../components/TimeSelector";
 import ReservationList from "../components/ReservationList";
 import { LoadingOverlay } from "../components/LoadingSpinner";
+import LogoutSuccessToast from "../components/LogoutSuccessToast";
 
 // Tipos
 import type { UserData, ReservationData, Reservation, Amenity } from "../types";
@@ -43,7 +43,7 @@ function TenantDashboard() {
     const [showEditPopup, setShowEditPopup] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
     const [newName, setNewName] = useState("");
 
     // Loading states
@@ -306,14 +306,13 @@ function TenantDashboard() {
 
     const handleLogout = () => {
         setShowProfile(false); // Close the profile panel first
-        setLogoutMessage("✅ Sesión cerrada exitosamente");
-        
-        setTimeout(() => {
-            localStorage.removeItem("token");
-            setTimeout(() => {
-                window.location.href = "/login";
-            }, 500); // Additional delay to ensure the notification is seen
-        }, 1000); // Show notification for 1 second before starting logout process
+        setShowSuccessToast(true);
+    };
+
+    const handleLogoutComplete = () => {
+        setShowSuccessToast(false);
+        localStorage.removeItem("token");
+        window.location.href = "/login";
     };
 
     const handleDeleteAccount = () => {
@@ -327,18 +326,10 @@ function TenantDashboard() {
             await deleteUser(token);
             setShowDeleteConfirm(false);
             setShowProfile(false);
-            setLogoutMessage("✅ Cuenta eliminada exitosamente");
-            
-            setTimeout(() => {
-                localStorage.removeItem("token");
-                setTimeout(() => {
-                    window.location.href = "/login";
-                }, 500);
-            }, 1500);
+            setShowSuccessToast(true);
         } catch (err) {
             setShowDeleteConfirm(false);
             alert("Error al eliminar la cuenta: " + (err instanceof Error ? err.message : "Error desconocido"));
-
         }
     };
 
@@ -352,23 +343,6 @@ function TenantDashboard() {
 
             {/* MAIN CONTENT CONTAINER */}
             <div className="relative p-8">
-                {/* LOGOUT NOTIFICATION */}
-                <AnimatePresence>
-                    {logoutMessage && (
-                        <motion.div
-                            initial={{ opacity: 0, x: 100, scale: 0.8 }}
-                            animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: 100, scale: 0.8 }}
-                            transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                            className="fixed top-20 right-4 z-[60] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border-2 border-green-400"
-                        >
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg font-semibold">{logoutMessage}</span>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
                 {/* WELCOME SECTION */}
                 <div className="mb-12 relative overflow-hidden">
                     <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 rounded-3xl p-8 shadow-2xl border border-gray-200">
@@ -530,6 +504,12 @@ function TenantDashboard() {
 
             />
             </div> {/* MAIN CONTENT CONTAINER */}
+
+            {/* Logout Success Toast */}
+            <LogoutSuccessToast
+                isVisible={showSuccessToast}
+                onComplete={handleLogoutComplete}
+            />
         </div>
     );
 }
