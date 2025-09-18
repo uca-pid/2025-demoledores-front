@@ -301,59 +301,64 @@ export default function AvailabilityTimelineViewer({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="group relative px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 flex items-center gap-3 font-medium transform hover:scale-105 cursor-pointer"
+        className="group relative w-full sm:w-auto px-3 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 flex items-center justify-center sm:justify-start gap-2 sm:gap-3 font-medium transform hover:scale-105 cursor-pointer text-xs sm:text-base min-w-0"
       >
-        <div className="relative">
-          <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+        <div className="relative flex-shrink-0">
+          <Calendar className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" />
           <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </div>
-        <span className="text-sm tracking-wide">Ver disponibilidad (Timeline)</span>
+        <span className="text-xs sm:text-sm tracking-wide truncate min-w-0">
+          <span className="sm:hidden">Timeline</span>
+          <span className="hidden sm:inline">Ver disponibilidad (Timeline)</span>
+        </span>
         <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300"></div>
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-7xl w-full max-h-[90vh] mx-4 overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-3 sm:p-6 max-w-7xl w-full max-h-[95vh] sm:max-h-[90vh] mx-2 sm:mx-4 overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-800 truncate pr-4">
                 Disponibilidad Timeline - {amenityName}
               </h2>
               <button
                 onClick={() => setOpen(false)}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors cursor-pointer"
+                className="px-3 sm:px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors cursor-pointer flex-shrink-0 text-sm sm:text-base"
               >
                 ✕
               </button>
             </div>
 
             {/* Week Navigation */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
               <button
                 onClick={() => setWeekOffset(weekOffset - 1)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer text-xs sm:text-sm"
               >
-                <ChevronLeft className="w-4 h-4" />
-                Semana anterior
+                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Semana anterior</span>
+                <span className="sm:hidden">Anterior</span>
               </button>
               
-              <div className="flex flex-col items-center">
-                <h3 className="text-lg font-semibold text-gray-700">
+              <div className="flex flex-col items-center flex-1 min-w-0">
+                <h3 className="text-sm sm:text-lg font-semibold text-gray-700 text-center">
                   {weekOffset === 0 ? "Esta semana" : 
                    weekOffset === 1 ? "Próxima semana" :
                    weekOffset > 0 ? `En ${weekOffset} semanas` :
                    `Hace ${Math.abs(weekOffset)} semana${Math.abs(weekOffset) > 1 ? 's' : ''}`}
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500 text-center truncate">
                   {days[0]?.label} - {days[6]?.label}
                 </p>
               </div>
 
               <button
                 onClick={() => setWeekOffset(weekOffset + 1)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer text-xs sm:text-sm"
               >
-                Semana siguiente
-                <ChevronRight className="w-4 h-4" />
+                <span className="hidden sm:inline">Semana siguiente</span>
+                <span className="sm:hidden">Siguiente</span>
+                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
 
