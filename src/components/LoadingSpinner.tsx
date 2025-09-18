@@ -80,7 +80,7 @@ export function LoadingButton({
       onClick={onClick}
       disabled={loading || disabled}
       className={`flex items-center justify-center gap-2 ${className} ${
-        loading || disabled ? 'opacity-75 cursor-not-allowed' : ''
+        loading || disabled ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer'
       }`}
     >
       {loading && <LoadingSpinner size="sm" color="white" />}
