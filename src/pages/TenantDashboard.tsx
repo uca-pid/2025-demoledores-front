@@ -130,6 +130,8 @@ function TenantDashboard() {
 
     const handleReserve = async () => {
         setIsReserving(true);
+        setTimeError(null); // Clear any previous errors
+        
         try {
             const [startStr, endStr] = selectedTime.split(" - ");
             
@@ -143,6 +145,22 @@ function TenantDashboard() {
             const [eh, em] = endStr.split(":").map(Number);
             startDateTime.setHours(sh, sm, 0, 0);
             endDateTime.setHours(eh, em, 0, 0);
+
+            // Validation: Check if the reservation time is in the past
+            const currentTime = new Date();
+            if (startDateTime < currentTime) {
+                setTimeError("❌ No puedes hacer una reserva para una hora que ya ha pasado");
+                setIsReserving(false);
+                return;
+            }
+
+            // Additional validation: Check if reservation is less than 5 minutes from now
+            const fiveMinutesFromNow = new Date(currentTime.getTime() + 5 * 60 * 1000);
+            if (startDateTime < fiveMinutesFromNow) {
+                setTimeError("❌ Las reservas deben hacerse con al menos 5 minutos de anticipación");
+                setIsReserving(false);
+                return;
+            }
 
             const amenity = amenities.find((a) => a.name === selectedSpace);
             if (!amenity) return;

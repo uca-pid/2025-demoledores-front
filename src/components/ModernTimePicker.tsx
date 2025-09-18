@@ -7,6 +7,7 @@ interface ModernTimePickerProps {
     maxDuration?: number; // in minutes
     label?: string;
     className?: string;
+    selectedDate?: string; // To check if it's today and filter past times
 }
 
 // Generate time slots in 30-minute intervals only
@@ -42,10 +43,18 @@ function ModernTimePicker({
     onTimeChange,
     maxDuration = 120,
     label = "Seleccionar Horario",
-    className = ""
+    className = "",
+    selectedDate
 }: ModernTimePickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [mode, setMode] = useState<'visual' | 'manual'>('visual');
+    
+    // Check if selected date is today
+    const isToday = selectedDate === new Date().toISOString().split('T')[0];
+    const currentTime = new Date();
+    const currentHour = currentTime.getHours();
+    const currentMinute = currentTime.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
     
     // Parse current selected time
     const [currentStart, currentEnd] = selectedTime.split(" - ");
@@ -54,6 +63,15 @@ function ModernTimePicker({
         : 60; // default 1 hour
 
     const timeSlots = generateTimeSlots();
+
+    // Filter out past times if the selected date is today
+    const availableTimeSlots = isToday 
+        ? timeSlots.filter(slot => {
+            const slotMinutes = timeToMinutes(slot);
+            // Add 5 minutes buffer to current time
+            return slotMinutes > (currentTotalMinutes + 5);
+          })
+        : timeSlots;
 
     // Calculate available end times for current start time
     const getAvailableEndTimes = (startTime: string) => {
@@ -224,7 +242,7 @@ function ModernTimePicker({
                         className="w-full p-3 rounded-lg border border-gray-200 focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition-all text-gray-700 bg-white appearance-none cursor-pointer"
                     >
                         <option value="" disabled>Selecciona hora de inicio</option>
-                        {timeSlots.map(slot => (
+                        {availableTimeSlots.map(slot => (
                             <option key={slot} value={slot}>
                                 {slot}
                             </option>

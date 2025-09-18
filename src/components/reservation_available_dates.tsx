@@ -117,9 +117,23 @@ export default function AvailabilityTimelineViewer({
     reservations.forEach((res) => {
       const startDate = new Date(res.startTime);
       const dayKey = getDayKey(startDate);
-      
+
       if (result[dayKey]) {
-        result[dayKey].push(res);
+        // Prevent duplicates: prefer matching by id, otherwise by start/end/user
+        const exists = result[dayKey].some((existing) => {
+          if (res.id !== undefined && existing.id !== undefined) {
+            return existing.id === res.id;
+          }
+          return (
+            existing.startTime === res.startTime &&
+            existing.endTime === res.endTime &&
+            (existing.user?.id ?? existing.user?.name) === (res.user?.id ?? res.user?.name)
+          );
+        });
+
+        if (!exists) {
+          result[dayKey].push(res);
+        }
       }
     });
 
@@ -287,59 +301,64 @@ export default function AvailabilityTimelineViewer({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="group relative px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 flex items-center gap-3 font-medium transform hover:scale-105 cursor-pointer"
+        className="group relative w-full sm:w-auto px-3 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 flex items-center justify-center sm:justify-start gap-2 sm:gap-3 font-medium transform hover:scale-105 cursor-pointer text-xs sm:text-base min-w-0"
       >
-        <div className="relative">
-          <Calendar className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+        <div className="relative flex-shrink-0">
+          <Calendar className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" />
           <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </div>
-        <span className="text-sm tracking-wide">Ver disponibilidad (Timeline)</span>
+        <span className="text-xs sm:text-sm tracking-wide truncate min-w-0">
+          <span className="sm:hidden">Timeline</span>
+          <span className="hidden sm:inline">Ver disponibilidad (Timeline)</span>
+        </span>
         <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300"></div>
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-7xl w-full max-h-[90vh] mx-4 overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-3 sm:p-6 max-w-7xl w-full max-h-[95vh] sm:max-h-[90vh] mx-2 sm:mx-4 overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-800 truncate pr-4">
                 Disponibilidad Timeline - {amenityName}
               </h2>
               <button
                 onClick={() => setOpen(false)}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors cursor-pointer"
+                className="px-3 sm:px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors cursor-pointer flex-shrink-0 text-sm sm:text-base"
               >
                 ✕
               </button>
             </div>
 
             {/* Week Navigation */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
               <button
                 onClick={() => setWeekOffset(weekOffset - 1)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer text-xs sm:text-sm"
               >
-                <ChevronLeft className="w-4 h-4" />
-                Semana anterior
+                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Semana anterior</span>
+                <span className="sm:hidden">Anterior</span>
               </button>
               
-              <div className="flex flex-col items-center">
-                <h3 className="text-lg font-semibold text-gray-700">
+              <div className="flex flex-col items-center flex-1 min-w-0">
+                <h3 className="text-sm sm:text-lg font-semibold text-gray-700 text-center">
                   {weekOffset === 0 ? "Esta semana" : 
                    weekOffset === 1 ? "Próxima semana" :
                    weekOffset > 0 ? `En ${weekOffset} semanas` :
                    `Hace ${Math.abs(weekOffset)} semana${Math.abs(weekOffset) > 1 ? 's' : ''}`}
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500 text-center truncate">
                   {days[0]?.label} - {days[6]?.label}
                 </p>
               </div>
 
               <button
                 onClick={() => setWeekOffset(weekOffset + 1)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer text-xs sm:text-sm"
               >
-                Semana siguiente
-                <ChevronRight className="w-4 h-4" />
+                <span className="hidden sm:inline">Semana siguiente</span>
+                <span className="sm:hidden">Siguiente</span>
+                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
 
@@ -390,48 +409,84 @@ export default function AvailabilityTimelineViewer({
                       {/* Reservations for this day */}
                       <div className="absolute inset-0">
                         {(() => {
-                          const slots = timeSlotData[dayObj.key] || [];
+                          const dayReservations = reservationsByDay[dayObj.key] || [];
                           
-                          // Group segments by their exact time boundaries to avoid duplicates
-                          const groupedSegments = new Map<string, typeof slots>();
+                          if (dayReservations.length === 0) return null;
                           
-                          slots.forEach((entry) => {
-                            const timeKey = `${entry.segmentStart}-${entry.segmentEnd}`;
-                            if (!groupedSegments.has(timeKey)) {
-                              groupedSegments.set(timeKey, []);
-                            }
-                            groupedSegments.get(timeKey)!.push(entry);
+                          // Get all unique time boundaries (start and end times)
+                          const boundaries = new Set<number>();
+                          dayReservations.forEach(res => {
+                            const startMinutes = new Date(res.startTime).getHours() * 60 + new Date(res.startTime).getMinutes();
+                            const endMinutes = new Date(res.endTime).getHours() * 60 + new Date(res.endTime).getMinutes();
+                            boundaries.add(startMinutes);
+                            boundaries.add(endMinutes);
                           });
                           
-                          return Array.from(groupedSegments.entries()).map(([timeKey, groupedEntries], groupIdx) => {
-                            const firstEntry = groupedEntries[0];
-                            const segmentStartMinutes = firstEntry.segmentStart;
-                            const segmentEndMinutes = firstEntry.segmentEnd;
+                          // Sort boundaries and create segments
+                          const sortedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
+                          const segments = [];
+                          
+                          for (let i = 0; i < sortedBoundaries.length - 1; i++) {
+                            const segmentStart = sortedBoundaries[i];
+                            const segmentEnd = sortedBoundaries[i + 1];
                             
-                            const segmentStartDate = new Date();
-                            segmentStartDate.setHours(Math.floor(segmentStartMinutes / 60), segmentStartMinutes % 60, 0, 0);
-                            const segmentEndDate = new Date();
-                            segmentEndDate.setHours(Math.floor(segmentEndMinutes / 60), segmentEndMinutes % 60, 0, 0);
+                            // Find all reservations that overlap with this segment
+                            const overlappingReservations = dayReservations.filter(res => {
+                              const resStart = new Date(res.startTime).getHours() * 60 + new Date(res.startTime).getMinutes();
+                              const resEnd = new Date(res.endTime).getHours() * 60 + new Date(res.endTime).getMinutes();
+                              return resStart < segmentEnd && resEnd > segmentStart;
+                            });
                             
-                            const startStr = segmentStartDate.toLocaleTimeString("es-ES", {
+                            if (overlappingReservations.length > 0) {
+                              segments.push({
+                                start: segmentStart,
+                                end: segmentEnd,
+                                reservations: overlappingReservations,
+                                count: overlappingReservations.length
+                              });
+                            }
+                          }
+                          
+                          // Create cards for each segment
+                          return segments.map((segment) => {
+                            // Clamp to visible range
+                            const clampedStart = Math.max(segment.start, VISIBLE_START_HOUR * 60);
+                            const clampedEnd = Math.min(segment.end, VISIBLE_END_HOUR * 60);
+                            
+                            // Skip if not in visible range
+                            if (clampedStart >= clampedEnd) return null;
+                            
+                            // Calculate position
+                            const startRelative = clampedStart - VISIBLE_START_HOUR * 60;
+                            const endRelative = clampedEnd - VISIBLE_START_HOUR * 60;
+                            const topPct = (startRelative / TOTAL_MINUTES) * 100;
+                            const heightPct = ((endRelative - startRelative) / TOTAL_MINUTES) * 100;
+                            
+                            // Create time strings
+                            const startDate = new Date();
+                            startDate.setHours(Math.floor(segment.start / 60), segment.start % 60, 0, 0);
+                            const endDate = new Date();
+                            endDate.setHours(Math.floor(segment.end / 60), segment.end % 60, 0, 0);
+                            
+                            const startStr = startDate.toLocaleTimeString("es-ES", {
                               hour: "2-digit",
                               minute: "2-digit",
                             });
-                            const endStr = segmentEndDate.toLocaleTimeString("es-ES", {
+                            const endStr = endDate.toLocaleTimeString("es-ES", {
                               hour: "2-digit",
                               minute: "2-digit",
                             });
 
-                            const ratio = groupedEntries.length / capacity;
+                            const ratio = segment.count / capacity;
                             const colorClass = getColorByRatio(ratio);
 
                             return (
                               <div
-                                key={`group-${timeKey}-${groupIdx}`}
+                                key={`segment-${segment.start}-${segment.end}`}
                                 className={`absolute rounded-lg p-1 border-2 shadow-lg cursor-pointer hover:shadow-xl hover:z-10 transition-all ${colorClass}`}
                                 style={{
-                                  top: `${firstEntry.topPct}%`,
-                                  height: `${Math.max(firstEntry.heightPct, 8)}%`, // Minimum 8% height for readability
+                                  top: `${topPct}%`,
+                                  height: `${Math.max(heightPct, 8)}%`,
                                   left: `2%`,
                                   width: `96%`,
                                   minHeight: "40px",
@@ -439,21 +494,21 @@ export default function AvailabilityTimelineViewer({
                                 }}
                                 onClick={() => {
                                   setSelectedSlot({
-                                    reservations: groupedEntries.map(e => e.res),
+                                    reservations: segment.reservations,
                                     timeSlot: `${startStr} - ${endStr}`,
                                     day: dayObj.label
                                   });
                                 }}
                               >
                                 <div className="font-semibold text-xs truncate flex items-center gap-1">
-                                  {groupedEntries.length > 1 ? (
+                                  {segment.count > 1 ? (
                                     <>
                                       <Users className="w-3 h-3 flex-shrink-0" />
-                                      <span>{groupedEntries.length}</span>
+                                      <span>{segment.count}</span>
                                     </>
                                   ) : (
                                     <span className="truncate">
-                                      {firstEntry.res.user?.name ? firstEntry.res.user.name : `User ${firstEntry.res.user?.id ?? ""}`}
+                                      {segment.reservations[0].user?.name ? segment.reservations[0].user.name : `User ${segment.reservations[0].user?.id ?? ""}`}
                                     </span>
                                   )}
                                 </div>
@@ -463,7 +518,7 @@ export default function AvailabilityTimelineViewer({
                                 </div>
                               </div>
                             );
-                          });
+                          }).filter(Boolean);
                         })()}
                       </div>
                     </div>

@@ -85,6 +85,7 @@ function TimeSelector({
                     selectedTime={selectedTime}
                     onTimeChange={onTimeChange}
                     maxDuration={maxDuration}
+                    selectedDate={selectedDate}
                     label="Horario de Reserva"
                 />
 
