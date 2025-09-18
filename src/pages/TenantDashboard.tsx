@@ -383,7 +383,7 @@ function TenantDashboard() {
                                     </div>
                                 </div>
                             </div>
-                            
+                            {/* Features Highlights 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                                     <div className="flex items-center gap-3 mb-3">
@@ -421,6 +421,7 @@ function TenantDashboard() {
                                     </p>
                                 </div>
                             </div>
+                            */}
                         </div>
                     </div>
                 </div>
