@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { HiOutlineEye, HiOutlineEyeOff } from "react-icons/hi";
 
 interface ChangePasswordModalProps {
     isVisible: boolean;
@@ -18,6 +19,9 @@ function ChangePasswordModal({
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [showRequirements, setShowRequirements] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const resetForm = () => {
         setCurrentPassword("");
@@ -26,6 +30,9 @@ function ChangePasswordModal({
         setError("");
         setIsLoading(false);
         setShowRequirements(false);
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
     };
 
     const handleClose = () => {
@@ -106,26 +113,48 @@ function ChangePasswordModal({
                         )}
 
                         <div className="space-y-4">
-                            <input
-                                type="password"
-                                placeholder="Contraseña actual"
-                                value={currentPassword}
-                                onChange={(e) => setCurrentPassword(e.target.value)}
-                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none"
-                                disabled={isLoading}
-                            />
-                            
-                            <div>
+                            <div className="relative">
                                 <input
-                                    type="password"
-                                    placeholder="Nueva contraseña"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    onFocus={() => setShowRequirements(true)}
-                                    onBlur={() => setShowRequirements(false)}
-                                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none"
+                                    type={showCurrentPassword ? "text" : "password"}
+                                    placeholder="Contraseña actual"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    className="w-full p-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none"
                                     disabled={isLoading}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                    onMouseDown={(e) => e.preventDefault()} // Prevent focus loss from input
+                                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                    aria-label={showCurrentPassword ? "Ocultar contraseña actual" : "Mostrar contraseña actual"}
+                                >
+                                    {showCurrentPassword ? <HiOutlineEyeOff size={20} /> : <HiOutlineEye size={20} />}
+                                </button>
+                            </div>
+                            
+                            <div>
+                                <div className="relative">
+                                    <input
+                                        type={showNewPassword ? "text" : "password"}
+                                        placeholder="Nueva contraseña"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        onFocus={() => setShowRequirements(true)}
+                                        onBlur={() => setShowRequirements(false)}
+                                        className="w-full p-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none"
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        onMouseDown={(e) => e.preventDefault()} // Prevent focus loss from input
+                                        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                        aria-label={showNewPassword ? "Ocultar nueva contraseña" : "Mostrar nueva contraseña"}
+                                    >
+                                        {showNewPassword ? <HiOutlineEyeOff size={20} /> : <HiOutlineEye size={20} />}
+                                    </button>
+                                </div>
                                 
                                 {/* Password requirements - only shown when focused */}
                                 {showRequirements && (
@@ -159,14 +188,25 @@ function ChangePasswordModal({
                                 )}
                             </div>
                             
-                            <input
-                                type="password"
-                                placeholder="Confirmar nueva contraseña"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none"
-                                disabled={isLoading}
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder="Confirmar nueva contraseña"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full p-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none"
+                                    disabled={isLoading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    onMouseDown={(e) => e.preventDefault()} // Prevent focus loss from input
+                                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                    aria-label={showConfirmPassword ? "Ocultar confirmación de contraseña" : "Mostrar confirmación de contraseña"}
+                                >
+                                    {showConfirmPassword ? <HiOutlineEyeOff size={20} /> : <HiOutlineEye size={20} />}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex justify-end gap-4 mt-6">
