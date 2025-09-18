@@ -126,30 +126,108 @@ export default function AvailabilityTimelineViewer({
     return result;
   }, [reservations, days]);
 
+  // Helper function to split reservations across hour boundaries
+  const splitReservationByHours = (reservation: Reservation) => {
+    const startDate = new Date(reservation.startTime);
+    const endDate = new Date(reservation.endTime);
+    const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+    const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+    
+    const segments: Array<{
+      res: Reservation;
+      segmentStart: number; // minutes from day start
+      segmentEnd: number;   // minutes from day start
+      originalStart: number; // original reservation start
+      originalEnd: number;   // original reservation end
+    }> = [];
+    
+    // If reservation doesn't cross hour boundaries, return as single segment
+    const startHour = Math.floor(startMinutes / 60);
+    const endHour = Math.floor((endMinutes - 1) / 60); // -1 to handle exact hour endings correctly
+    
+    if (startHour === endHour) {
+      // Single hour segment
+      segments.push({
+        res: reservation,
+        segmentStart: startMinutes,
+        segmentEnd: endMinutes,
+        originalStart: startMinutes,
+        originalEnd: endMinutes
+      });
+    } else {
+      // Multiple hour segments
+      for (let hour = startHour; hour <= endHour; hour++) {
+        const hourStartMinutes = hour * 60;
+        const hourEndMinutes = (hour + 1) * 60;
+        
+        // Calculate the actual time this reservation occupies in this hour
+        const segmentStart = Math.max(startMinutes, hourStartMinutes);
+        const segmentEnd = Math.min(endMinutes, hourEndMinutes);
+        
+        // Only create segment if there's actual time in this hour
+        if (segmentStart < segmentEnd) {
+          segments.push({
+            res: reservation,
+            segmentStart,
+            segmentEnd,
+            originalStart: startMinutes,
+            originalEnd: endMinutes
+          });
+        }
+      }
+    }
+    
+    return segments;
+  };
+
   const timeSlotData = useMemo(() => {
-    const result: Record<string, Array<{ res: Reservation; topPct: number; heightPct: number; overlapCount: number; colIndex: number; colCount: number }>> = {};
+    const result: Record<string, Array<{ 
+      res: Reservation; 
+      topPct: number; 
+      heightPct: number; 
+      overlapCount: number; 
+      colIndex: number; 
+      colCount: number;
+      segmentStart: number;
+      segmentEnd: number;
+      originalStart: number;
+      originalEnd: number;
+    }>> = {};
 
     days.forEach(({ key: day }) => {
       const dayReservations = reservationsByDay[day] || [];
 
-      // Convert each reservation to minute ranges
-      const intervals = dayReservations.map((res) => {
-        const startDate = new Date(res.startTime);
-        const endDate = new Date(res.endTime);
-        const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
-        const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+      // Split each reservation into hour segments
+      const allSegments: Array<{
+        res: Reservation;
+        segmentStart: number;
+        segmentEnd: number;
+        originalStart: number;
+        originalEnd: number;
+      }> = [];
 
+      dayReservations.forEach((res) => {
+        const segments = splitReservationByHours(res);
+        allSegments.push(...segments);
+      });
+
+      // Convert segments to intervals with clamping
+      const intervals = allSegments.map((segment) => {
         // Clamp to visible range
-        const clampedStart = clamp(startMinutes, VISIBLE_START_HOUR * 60, VISIBLE_END_HOUR * 60);
-        const clampedEnd = clamp(endMinutes, VISIBLE_START_HOUR * 60, VISIBLE_END_HOUR * 60);
+        const clampedStart = clamp(segment.segmentStart, VISIBLE_START_HOUR * 60, VISIBLE_END_HOUR * 60);
+        const clampedEnd = clamp(segment.segmentEnd, VISIBLE_START_HOUR * 60, VISIBLE_END_HOUR * 60);
 
         return {
-          res,
+          res: segment.res,
           start: clampedStart - VISIBLE_START_HOUR * 60, // Relative to visible start
           end: clampedEnd - VISIBLE_START_HOUR * 60,
+          segmentStart: segment.segmentStart,
+          segmentEnd: segment.segmentEnd,
+          originalStart: segment.originalStart,
+          originalEnd: segment.originalEnd,
           colIndex: 0, // Will be calculated below
         };
-      });
+      }).filter(interval => interval.start < interval.end); // Only keep valid intervals
 
       // Sort by start time
       intervals.sort((a, b) => a.start - b.start);
@@ -192,6 +270,10 @@ export default function AvailabilityTimelineViewer({
           overlapCount: concurrent,
           colIndex: it.colIndex,
           colCount,
+          segmentStart: it.segmentStart,
+          segmentEnd: it.segmentEnd,
+          originalStart: it.originalStart,
+          originalEnd: it.originalEnd,
         };
       });
 
@@ -308,80 +390,70 @@ export default function AvailabilityTimelineViewer({
                       {/* Reservations for this day */}
                       <div className="absolute inset-0">
                         {(() => {
-                          // Group overlapping reservations to avoid duplicates
-                          const renderedGroups = new Set<string>();
                           const slots = timeSlotData[dayObj.key] || [];
                           
-                          return slots.map((entry, idx) => {
-                            const startStr = new Date(entry.res.startTime).toLocaleTimeString("es-ES", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            });
-                            const endStr = new Date(entry.res.endTime).toLocaleTimeString("es-ES", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            });
-
-                            // Calculate overlapping reservations for capacity ratio
-                            const overlappingReservations = slots.filter(other => {
-                              const otherStart = new Date(other.res.startTime);
-                              const otherEnd = new Date(other.res.endTime);
-                              const currentStart = new Date(entry.res.startTime);
-                              const currentEnd = new Date(entry.res.endTime);
-                              
-                              // Check if time periods overlap
-                              return otherStart < currentEnd && otherEnd > currentStart;
-                            });
-
-                            // Create a unique key for this overlapping group
-                            const groupKey = overlappingReservations
-                              .map(r => r.res.id)
-                              .sort()
-                              .join('-');
-
-                            // Only render the first occurrence of each group
-                            if (renderedGroups.has(groupKey)) {
-                              return null;
+                          // Group segments by their exact time boundaries to avoid duplicates
+                          const groupedSegments = new Map<string, typeof slots>();
+                          
+                          slots.forEach((entry) => {
+                            const timeKey = `${entry.segmentStart}-${entry.segmentEnd}`;
+                            if (!groupedSegments.has(timeKey)) {
+                              groupedSegments.set(timeKey, []);
                             }
-                            renderedGroups.add(groupKey);
-
-                            const ratio = overlappingReservations.length / capacity;
-                            const colorClass = getColorByRatio(ratio);
+                            groupedSegments.get(timeKey)!.push(entry);
+                          });
+                          
+                          return Array.from(groupedSegments.entries()).map(([timeKey, groupedEntries], groupIdx) => {
+                            const firstEntry = groupedEntries[0];
+                            const segmentStartMinutes = firstEntry.segmentStart;
+                            const segmentEndMinutes = firstEntry.segmentEnd;
                             
-                            // Instead of dividing width, use full width with slight offset for overlapping cards
-                            const widthPct = 90; // Use 90% width to leave some margin
-                            const offsetStep = 3; // 3% offset for each overlapping card
-                            const leftPct = Math.min(entry.colIndex * offsetStep, 15); // Max 15% offset to avoid going off-screen
+                            const segmentStartDate = new Date();
+                            segmentStartDate.setHours(Math.floor(segmentStartMinutes / 60), segmentStartMinutes % 60, 0, 0);
+                            const segmentEndDate = new Date();
+                            segmentEndDate.setHours(Math.floor(segmentEndMinutes / 60), segmentEndMinutes % 60, 0, 0);
+                            
+                            const startStr = segmentStartDate.toLocaleTimeString("es-ES", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+                            const endStr = segmentEndDate.toLocaleTimeString("es-ES", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+
+                            const ratio = groupedEntries.length / capacity;
+                            const colorClass = getColorByRatio(ratio);
 
                             return (
                               <div
-                                key={`group-${groupKey}-${idx}`}
+                                key={`group-${timeKey}-${groupIdx}`}
                                 className={`absolute rounded-lg p-1 border-2 shadow-lg cursor-pointer hover:shadow-xl hover:z-10 transition-all ${colorClass}`}
                                 style={{
-                                  top: `${entry.topPct}%`,
-                                  height: `${Math.max(entry.heightPct, 8)}%`, // Minimum 8% height for readability
-                                  left: `${leftPct}%`,
-                                  width: `${widthPct}%`,
-                                  minHeight: "40px", // Increased from 24px to 40px
-                                  zIndex: entry.colIndex + 1 // Higher z-index for cards that are more to the right
+                                  top: `${firstEntry.topPct}%`,
+                                  height: `${Math.max(firstEntry.heightPct, 8)}%`, // Minimum 8% height for readability
+                                  left: `2%`,
+                                  width: `96%`,
+                                  minHeight: "40px",
+                                  zIndex: 1
                                 }}
                                 onClick={() => {
                                   setSelectedSlot({
-                                    reservations: overlappingReservations.map(e => e.res),
+                                    reservations: groupedEntries.map(e => e.res),
                                     timeSlot: `${startStr} - ${endStr}`,
                                     day: dayObj.label
                                   });
                                 }}
                               >
                                 <div className="font-semibold text-xs truncate flex items-center gap-1">
-                                  {overlappingReservations.length > 1 ? (
+                                  {groupedEntries.length > 1 ? (
                                     <>
                                       <Users className="w-3 h-3 flex-shrink-0" />
-                                      <span>{overlappingReservations.length}</span>
+                                      <span>{groupedEntries.length}</span>
                                     </>
                                   ) : (
                                     <span className="truncate">
-                                      {entry.res.user?.name ? entry.res.user.name : `User ${entry.res.user?.id ?? ""}`}
+                                      {firstEntry.res.user?.name ? firstEntry.res.user.name : `User ${firstEntry.res.user?.id ?? ""}`}
                                     </span>
                                   )}
                                 </div>
@@ -391,7 +463,7 @@ export default function AvailabilityTimelineViewer({
                                 </div>
                               </div>
                             );
-                          }).filter(Boolean); // Remove null entries
+                          });
                         })()}
                       </div>
                     </div>
@@ -447,21 +519,36 @@ export default function AvailabilityTimelineViewer({
             </div>
 
             <div className="space-y-3">
-              {selectedSlot.reservations.map((reservation, idx) => (
-                <div 
-                  key={`${reservation.id}-${idx}`}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    {reservation.user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-800">
-                      {reservation.user?.name || `Usuario ${reservation.user?.id || 'Desconocido'}`}
+              {selectedSlot.reservations.map((reservation, idx) => {
+                const startTime = new Date(reservation.startTime).toLocaleTimeString("es-ES", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                const endTime = new Date(reservation.endTime).toLocaleTimeString("es-ES", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+
+                return (
+                  <div 
+                    key={`${reservation.id}-${idx}`}
+                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      {reservation.user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-800">
+                        {reservation.user?.name || `Usuario ${reservation.user?.id || 'Desconocido'}`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-gray-600 bg-white px-2 py-1 rounded border">
+                      <Clock className="w-3 h-3" />
+                      <span className="font-medium">{startTime} - {endTime}</span>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="mt-4 text-sm text-gray-600 text-center">
