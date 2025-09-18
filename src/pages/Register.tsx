@@ -144,6 +144,7 @@ function Register() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              onMouseDown={(e) => e.preventDefault()} // Prevent focus loss from input
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
@@ -191,6 +192,7 @@ function Register() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              onMouseDown={(e) => e.preventDefault()} // Prevent focus loss from input
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
               aria-label={showConfirmPassword ? "Ocultar confirmación de contraseña" : "Mostrar confirmación de contraseña"}
             >
