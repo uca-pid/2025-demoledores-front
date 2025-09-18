@@ -117,9 +117,23 @@ export default function AvailabilityTimelineViewer({
     reservations.forEach((res) => {
       const startDate = new Date(res.startTime);
       const dayKey = getDayKey(startDate);
-      
+
       if (result[dayKey]) {
-        result[dayKey].push(res);
+        // Prevent duplicates: prefer matching by id, otherwise by start/end/user
+        const exists = result[dayKey].some((existing) => {
+          if (res.id !== undefined && existing.id !== undefined) {
+            return existing.id === res.id;
+          }
+          return (
+            existing.startTime === res.startTime &&
+            existing.endTime === res.endTime &&
+            (existing.user?.id ?? existing.user?.name) === (res.user?.id ?? res.user?.name)
+          );
+        });
+
+        if (!exists) {
+          result[dayKey].push(res);
+        }
       }
     });
 
@@ -390,48 +404,84 @@ export default function AvailabilityTimelineViewer({
                       {/* Reservations for this day */}
                       <div className="absolute inset-0">
                         {(() => {
-                          const slots = timeSlotData[dayObj.key] || [];
+                          const dayReservations = reservationsByDay[dayObj.key] || [];
                           
-                          // Group segments by their exact time boundaries to avoid duplicates
-                          const groupedSegments = new Map<string, typeof slots>();
+                          if (dayReservations.length === 0) return null;
                           
-                          slots.forEach((entry) => {
-                            const timeKey = `${entry.segmentStart}-${entry.segmentEnd}`;
-                            if (!groupedSegments.has(timeKey)) {
-                              groupedSegments.set(timeKey, []);
-                            }
-                            groupedSegments.get(timeKey)!.push(entry);
+                          // Get all unique time boundaries (start and end times)
+                          const boundaries = new Set<number>();
+                          dayReservations.forEach(res => {
+                            const startMinutes = new Date(res.startTime).getHours() * 60 + new Date(res.startTime).getMinutes();
+                            const endMinutes = new Date(res.endTime).getHours() * 60 + new Date(res.endTime).getMinutes();
+                            boundaries.add(startMinutes);
+                            boundaries.add(endMinutes);
                           });
                           
-                          return Array.from(groupedSegments.entries()).map(([timeKey, groupedEntries], groupIdx) => {
-                            const firstEntry = groupedEntries[0];
-                            const segmentStartMinutes = firstEntry.segmentStart;
-                            const segmentEndMinutes = firstEntry.segmentEnd;
+                          // Sort boundaries and create segments
+                          const sortedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
+                          const segments = [];
+                          
+                          for (let i = 0; i < sortedBoundaries.length - 1; i++) {
+                            const segmentStart = sortedBoundaries[i];
+                            const segmentEnd = sortedBoundaries[i + 1];
                             
-                            const segmentStartDate = new Date();
-                            segmentStartDate.setHours(Math.floor(segmentStartMinutes / 60), segmentStartMinutes % 60, 0, 0);
-                            const segmentEndDate = new Date();
-                            segmentEndDate.setHours(Math.floor(segmentEndMinutes / 60), segmentEndMinutes % 60, 0, 0);
+                            // Find all reservations that overlap with this segment
+                            const overlappingReservations = dayReservations.filter(res => {
+                              const resStart = new Date(res.startTime).getHours() * 60 + new Date(res.startTime).getMinutes();
+                              const resEnd = new Date(res.endTime).getHours() * 60 + new Date(res.endTime).getMinutes();
+                              return resStart < segmentEnd && resEnd > segmentStart;
+                            });
                             
-                            const startStr = segmentStartDate.toLocaleTimeString("es-ES", {
+                            if (overlappingReservations.length > 0) {
+                              segments.push({
+                                start: segmentStart,
+                                end: segmentEnd,
+                                reservations: overlappingReservations,
+                                count: overlappingReservations.length
+                              });
+                            }
+                          }
+                          
+                          // Create cards for each segment
+                          return segments.map((segment) => {
+                            // Clamp to visible range
+                            const clampedStart = Math.max(segment.start, VISIBLE_START_HOUR * 60);
+                            const clampedEnd = Math.min(segment.end, VISIBLE_END_HOUR * 60);
+                            
+                            // Skip if not in visible range
+                            if (clampedStart >= clampedEnd) return null;
+                            
+                            // Calculate position
+                            const startRelative = clampedStart - VISIBLE_START_HOUR * 60;
+                            const endRelative = clampedEnd - VISIBLE_START_HOUR * 60;
+                            const topPct = (startRelative / TOTAL_MINUTES) * 100;
+                            const heightPct = ((endRelative - startRelative) / TOTAL_MINUTES) * 100;
+                            
+                            // Create time strings
+                            const startDate = new Date();
+                            startDate.setHours(Math.floor(segment.start / 60), segment.start % 60, 0, 0);
+                            const endDate = new Date();
+                            endDate.setHours(Math.floor(segment.end / 60), segment.end % 60, 0, 0);
+                            
+                            const startStr = startDate.toLocaleTimeString("es-ES", {
                               hour: "2-digit",
                               minute: "2-digit",
                             });
-                            const endStr = segmentEndDate.toLocaleTimeString("es-ES", {
+                            const endStr = endDate.toLocaleTimeString("es-ES", {
                               hour: "2-digit",
                               minute: "2-digit",
                             });
 
-                            const ratio = groupedEntries.length / capacity;
+                            const ratio = segment.count / capacity;
                             const colorClass = getColorByRatio(ratio);
 
                             return (
                               <div
-                                key={`group-${timeKey}-${groupIdx}`}
+                                key={`segment-${segment.start}-${segment.end}`}
                                 className={`absolute rounded-lg p-1 border-2 shadow-lg cursor-pointer hover:shadow-xl hover:z-10 transition-all ${colorClass}`}
                                 style={{
-                                  top: `${firstEntry.topPct}%`,
-                                  height: `${Math.max(firstEntry.heightPct, 8)}%`, // Minimum 8% height for readability
+                                  top: `${topPct}%`,
+                                  height: `${Math.max(heightPct, 8)}%`,
                                   left: `2%`,
                                   width: `96%`,
                                   minHeight: "40px",
@@ -439,21 +489,21 @@ export default function AvailabilityTimelineViewer({
                                 }}
                                 onClick={() => {
                                   setSelectedSlot({
-                                    reservations: groupedEntries.map(e => e.res),
+                                    reservations: segment.reservations,
                                     timeSlot: `${startStr} - ${endStr}`,
                                     day: dayObj.label
                                   });
                                 }}
                               >
                                 <div className="font-semibold text-xs truncate flex items-center gap-1">
-                                  {groupedEntries.length > 1 ? (
+                                  {segment.count > 1 ? (
                                     <>
                                       <Users className="w-3 h-3 flex-shrink-0" />
-                                      <span>{groupedEntries.length}</span>
+                                      <span>{segment.count}</span>
                                     </>
                                   ) : (
                                     <span className="truncate">
-                                      {firstEntry.res.user?.name ? firstEntry.res.user.name : `User ${firstEntry.res.user?.id ?? ""}`}
+                                      {segment.reservations[0].user?.name ? segment.reservations[0].user.name : `User ${segment.reservations[0].user?.id ?? ""}`}
                                     </span>
                                   )}
                                 </div>
@@ -463,7 +513,7 @@ export default function AvailabilityTimelineViewer({
                                 </div>
                               </div>
                             );
-                          });
+                          }).filter(Boolean);
                         })()}
                       </div>
                     </div>
