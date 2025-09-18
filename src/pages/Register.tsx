@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { HiOutlineMail, HiOutlineLockClosed, HiOutlineUser, HiOutlineHome, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 import { register } from '../api_calls/auth';
 import { getApartments, type Apartment } from '../api_calls/get_apartments';
+import RegistrationSuccessToast from '../components/RegistrationSuccessToast';
 
 function Register() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ function Register() {
   const [apartmentId, setApartmentId] = useState<string>('');
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -65,10 +67,18 @@ function Register() {
         password,
         apartmentId
       }).then((result) => {
-        if (result.success) navigate('/login');
-        else setErrors({ email: result.message || 'Error en el registro' });
+        if (result.success) {
+          setShowSuccessToast(true);
+        } else {
+          setErrors({ email: result.message || 'Error en el registro' });
+        }
       });
     }
+  };
+
+  const handleToastComplete = () => {
+    setShowSuccessToast(false);
+    navigate('/login');
   };
 
   return (
@@ -144,6 +154,7 @@ function Register() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              onMouseDown={(e) => e.preventDefault()} // Prevent focus loss from input
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
@@ -191,6 +202,7 @@ function Register() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              onMouseDown={(e) => e.preventDefault()} // Prevent focus loss from input
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 cursor-pointer"
               aria-label={showConfirmPassword ? "Ocultar confirmación de contraseña" : "Mostrar confirmación de contraseña"}
             >
@@ -219,6 +231,12 @@ function Register() {
           </span>
         </p>
       </div>
+
+      {/* Registration Success Toast */}
+      <RegistrationSuccessToast
+        isVisible={showSuccessToast}
+        onComplete={handleToastComplete}
+      />
     </div>
   );
 }
